@@ -4,12 +4,12 @@ Este ZIP é **código-fonte de repositório Flutter**, não um APK. Contém work
 
 1. Criar repositório GitHub e importar os arquivos do ZIP mantendo a pasta `.github/workflows/` e os arquivos na raiz (não adicionar pasta externa).
 2. Iniciar `Gerar APK Uai Vozes` pelo GitHub Manager, caso o aplicativo suporte disparar workflows, ou pelo site GitHub > Actions.
-3. Ao concluir, obter o artifact `Uai-Vozes-v0.09-apk`. Ao extrair esse artifact, `Uai-Vozes-v0.09.apk` fica **fora** do ZIP de código-fonte.
+3. Ao concluir, obter o artifact `Uai-Vozes-v0.11-apk`. Ao extrair esse artifact, `Uai-Vozes-v0.11.apk` fica **fora** do ZIP de código-fonte.
 4. O comando manual marca `publicar_release` por padrão (é possível desmarcar) para publicar o mesmo APK como arquivo direto na aba Releases do GitHub, se a permissão contents:write permitir.
 
-O workflow prepara a plataforma Android usando o Flutter SDK oficial antes de compilar. A **assinatura é obrigatória** na v0.09. Antes de executar, importe pelo GitHub Manager os quatro Secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD` associados à **mesma keystore das versões futuras**. Sem qualquer um deles o workflow para com mensagem explícita e não publica APK de assinatura provisória. Não incluir keystore nem segredos no ZIP ou repositório.
+O workflow prepara a plataforma Android usando o Flutter SDK oficial antes de compilar. A **assinatura é obrigatória** na v0.11. Antes de executar, importe pelo GitHub Manager os quatro Secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD` associados à **mesma keystore das versões futuras**. Sem qualquer um deles o workflow para com mensagem explícita e não publica APK de assinatura provisória. Não incluir keystore nem segredos no ZIP ou repositório.
 
-O Artifact inclui `Uai-Vozes-v0.09.apk` e `Uai-Vozes-v0.09.apk.sha256` para verificação da integridade. O arquivo APK não é colocado dentro do ZIP de código-fonte. O `versionCode` é 9; atualizar sem desinstalar exige mesma `applicationId` e certificado do APK instalado. A keystore gerada em conversa anterior precisa ser importada como Secrets no repositório, o simples backup no Drive não ativa a assinatura.
+O Artifact inclui `Uai-Vozes-v0.11.apk` e `Uai-Vozes-v0.11.apk.sha256` para verificação da integridade. O arquivo APK não é colocado dentro do ZIP de código-fonte. O `versionCode` é 11; atualizar sem desinstalar exige mesma `applicationId` e certificado do APK instalado. A keystore gerada em conversa anterior precisa ser importada como Secrets no repositório, o simples backup no Drive não ativa a assinatura.
 
 Os arquivos `github-manager.json` e `app_identity.json` são metadados auxiliares e **não são garantia de suporte a um formato proprietário de importação**. O caminho compatível é Git/GitHub Actions.
 
@@ -24,3 +24,10 @@ O build #8 da v0.07 passou na análise e nos 32 testes Flutter, mas falhou no em
 ### Novidades v0.09
 
 Central de créditos e histórico local de até 60 gerações, alertas visuais de limites opcionais, sem alterar o workflow de assinatura existente.
+
+### Novidades v0.10
+- Explorador de vozes: busca na API, filtros e paginação, cache temporário e prévias controláveis.
+- Mantenha os mesmos Secrets; o APK segue fora do ZIP de código-fonte.
+
+### Atualização alpha.11
+A geração agora mostra a etapa da falha e o código HTTP retornado pela ElevenLabs quando disponível; use Copiar erro para compartilhar apenas a descrição técnica saneada. Não envie sua chave API nem o texto da geração. Não repetir automaticamente uma operação potencialmente cobrada.

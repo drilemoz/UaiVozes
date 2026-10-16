@@ -304,6 +304,16 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.11': [
+    'Erros de geração exibem etapa e HTTP em painel, com opção Copiar erro sem dados sensíveis.',
+    'Áudio recebido é salvo antes de registrar histórico: falha do histórico não descarta o MP3.',
+    'Tratamento seguro de respostas da ElevenLabs e validação de MP3 antes de salvar.',
+  ],
+  '0.1.0-alpha.10': [
+    'Explorar vozes agora pesquisa o catálogo completo com paginação e novos filtros.',
+    'Cache de sessão e respostas atrasadas protegidas após trocar idioma ou conta.',
+    'Prévias podem ser interrompidas sem bloquear o aplicativo; novos testes de API.',
+  ],
   '0.1.0-alpha.9': [
     'Central de créditos com histórico local por geração, sem armazenar o texto.',
     'Alertas opcionais aos 50%, 80% e 95% do limite reportado pela ElevenLabs.',

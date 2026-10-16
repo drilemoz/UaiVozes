@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:uaivozes/src/eleven_api.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +43,46 @@ void main() {
         http.Response(jsonEncode({'detail': 'forbidden'}), 403)));
     expect(() => api.topTen(language: 'en'),
         throwsA(isA<ElevenApiException>()));
+    api.dispose();
+  });
+
+  test('TTS identifica HTTP 422 e não repete chamada cobrável', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'chave_privada', client: MockClient((request) async {
+      calls++;
+      return http.Response(jsonEncode({'detail': {
+        'status': 'voice_not_found',
+        'message': 'chave_privada texto sensível',
+      }}), 422);
+    }));
+    try {
+      await api.synthesize(voiceId: 'voz', text: 'teste');
+      fail('Esperada falha HTTP 422');
+    } on ElevenApiException catch (e) {
+      expect(e.statusCode, 422);
+      expect(e.reason, 'voice_not_found');
+      expect(e.toString(), isNot(contains('sensível')));
+      expect(e.toString(), isNot(contains('chave_privada')));
+    }
+    expect(calls, 1);
+    api.dispose();
+  });
+
+  test('TTS aceita MP3 com cabeçalho ID3', () async {
+    final api = ElevenApi(() async => 'chave', client: MockClient((request) async {
+      expect(request.url.path, '/v1/text-to-speech/voz');
+      return http.Response.bytes(Uint8List.fromList([0x49,0x44,0x33,0x03,0x00]), 200);
+    }));
+    final bytes = await api.synthesize(voiceId: 'voz', text: 'Olá!');
+    expect(bytes.length, 5);
+    api.dispose();
+  });
+
+  test('TTS recusa HTML retornado com HTTP 200 no lugar de MP3', () async {
+    final api = ElevenApi(() async => 'chave', client: MockClient((request) async =>
+      http.Response('<html>proxy</html>', 200)));
+    await expectLater(api.synthesize(voiceId: 'voz', text: 'teste'),
+      throwsA(isA<ElevenApiException>()));
     api.dispose();
   });
 

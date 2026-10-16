@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.9+9
+# Validação da versão 0.1.0-alpha.11+11
 
 ## Causa do workflow anterior
 
@@ -86,3 +86,17 @@ Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero iss
 - Lint/análise/compilação Flutter não disponíveis no ambiente local. Executar GitHub Actions para verificação real.
 - Código não grava texto, chave ou identificação de voz na nova lista de consumo.
 - API oficial usada para dados do plano: `GET /v1/user/subscription`. `character_count` e `character_limit` não são um extrato universal do faturamento.
+
+## Validação alpha.10 (Explorar vozes)
+
+- Pesquisa da conta por `GET /v2/voices?search=...` com debounce e paginação por `next_page_token`/`has_more`.
+- Filtros reais: `language`, `accent`, `gender`, `age` e `use_cases`. Estilo mantido como metadado local quando disponível.
+- Resultados atrasados descartados por revisão da pesquisa e troca de credencial; cache LRU efêmero por 3 minutos, 10 páginas; limpo ao mudar conta/idioma.
+- Top 10 permanece listado somente a partir de dados oficiais, condicionado ao acesso da conta.
+- Testes em `test/voice_browse_test.dart`: requisições, paginação, cache, expiração, isolamento de filtros.
+- `flutter analyze`, `flutter test` e build Android pendentes de execução real no GitHub Actions.
+
+## Validação alpha.11
+- Regressões cobrem códigos HTTP, falha no MP3 e classificação do erro por fase sem informação pessoal.
+- O print da falha de v0.10 não contém código HTTP: diagnóstico exato do servidor pendente da próxima execução real.
+- Flutter SDK/Android ausente no ambiente local: `flutter analyze`, `flutter test` e APK pendentes no GitHub Actions.

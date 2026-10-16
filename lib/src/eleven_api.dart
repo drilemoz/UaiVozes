@@ -7,9 +7,11 @@ import 'models.dart';
 import 'diagnostics.dart';
 
 class ElevenApiException implements Exception {
-  const ElevenApiException(this.message, [this.statusCode]);
+  const ElevenApiException(this.message, [this.statusCode, this.reason]);
   final String message;
   final int? statusCode;
+  /// Somente categorias conhecidas, nunca o corpo remoto nem a chave.
+  final String? reason;
   @override
   String toString() => message;
 }
@@ -17,10 +19,14 @@ class ElevenApiException implements Exception {
 String friendlyError(Object error) {
   if (error is ElevenApiException) {
     return switch (error.statusCode) {
+      400 => 'formato ou parâmetros não aceitos pela ElevenLabs',
       401 => 'chave inválida ou sem permissão',
       402 || 403 => 'recurso indisponível para seu plano ou chave',
-      429 => 'limite da API ou créditos atingidos',
-      _ => error.statusCode == null ? 'sem conexão ou chave não configurada' :
+      404 => 'voz ou modelo não encontrado ou sem acesso',
+      422 => 'voz, modelo ou solicitação não aceitos pela API',
+      429 => 'limite de requisições ou créditos atingidos',
+      500 || 502 || 503 || 504 => 'instabilidade temporária da ElevenLabs',
+      _ => error.statusCode == null ? 'falha de conexão ou resposta inválida' :
         'servidor respondeu HTTP ${error.statusCode}',
     };
   }
@@ -130,38 +136,37 @@ class ElevenApi {
   }
 
   Never _fail(http.Response response) {
-    String detail = '';
+    // Não incluir o corpo remoto no diagnóstico ou numa mensagem. O servidor
+    // pode ecoar partes do texto, metadados pessoais ou dados sensíveis.
+    String? reason;
     try {
-      final body = jsonDecode(utf8.decode(response.bodyBytes));
-      if (body is Map && body['detail'] is Map) {
-        detail = '${body['detail']['message'] ?? ''}';
-      } else if (body is Map && body['detail'] is String) {
-        detail = body['detail'] as String;
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is Map && decoded['detail'] is Map) {
+        final raw = decoded['detail']['status'];
+        const permitted = <String>{
+          'voice_not_found', 'model_not_found', 'quota_exceeded',
+          'invalid_api_key', 'missing_permissions', 'rate_limit_exceeded',
+          'voice_limit_reached', 'free_users_not_allowed',
+        };
+        if (raw is String && permitted.contains(raw)) reason = raw;
       }
     } catch (_) {
-      // Mensagem humana padronizada. Não expõe cabeçalhos/chave.
+      // Falha de parse não deve esconder o status HTTP.
     }
     final code = response.statusCode;
-    AppDiagnostics.instance.failure('API_HTTP', 'HTTP $code (sem resposta sensível).');
-    if (code == 401) {
-      throw ElevenApiException('Chave API inválida ou sem permissão.', code);
-    }
-    if (code == 402) {
-      throw ElevenApiException('Recurso exige outro plano da ElevenLabs.', code);
-    }
-    if (code == 403) {
-      throw ElevenApiException('Seu plano ou sua chave não permite este recurso.', code);
-    }
-    if (code == 429) {
-      throw ElevenApiException('Limite de requisições ou créditos atingido.', code);
-    }
-    if (code == 422) {
-      throw ElevenApiException(
-          detail.isEmpty ? 'Texto, voz ou modelo não aceito pela API.' : detail,
-          code);
-    }
-    throw ElevenApiException(
-        detail.isEmpty ? 'A ElevenLabs retornou HTTP $code.' : detail, code);
+    AppDiagnostics.instance.failure('API_HTTP',
+        'HTTP $code${reason == null ? '' : ' | $reason'}');
+    final message = switch (code) {
+      400 => 'A solicitação não foi aceita. Verifique a voz e o modelo.',
+      401 => 'Chave API inválida ou sem permissão para este recurso.',
+      402 || 403 => 'O plano ou a chave API não permite esta operação.',
+      404 => 'A voz ou o modelo pode não estar disponível na sua conta.',
+      422 => 'A ElevenLabs rejeitou a combinação de voz, modelo ou texto.',
+      429 => 'Limite da conta ou da API atingido.',
+      500 || 502 || 503 || 504 => 'A ElevenLabs apresentou instabilidade.',
+      _ => 'A ElevenLabs retornou HTTP $code.',
+    };
+    throw ElevenApiException(message, code, reason);
   }
 
   Future<http.Response> _get(String path, [Map<String, String>? params, String? overrideKey]) async {
@@ -204,21 +209,41 @@ class ElevenApi {
     return ElevenAccount.fromJson(data);
   }
 
-  Future<VoicePage> voices({String? token, String? language}) async {
+  /// Busca paginada no catálogo da conta. Os filtros abaixo pertencem
+  /// ao endpoint /v2/voices, não ao ranking de vozes compartilhadas.
+  Future<VoicePage> voices({
+    String? token,
+    String? language,
+    String? search,
+    String? gender,
+    String? age,
+    String? accent,
+    String? useCase,
+  }) async {
     final query = <String, String>{
-      'page_size': '50',
+      'page_size': '30',
       'include_total_count': 'false',
     };
     if (token != null && token.isNotEmpty) query['next_page_token'] = token;
     if (language != null && language.isNotEmpty && language != 'all') {
       query['language'] = language;
     }
+    if (search != null && search.trim().isNotEmpty) query['search'] = search.trim();
+    if (gender != null && gender.isNotEmpty && gender != 'all') query['gender'] = gender;
+    if (age != null && age.isNotEmpty && age != 'all') query['age'] = age;
+    if (accent != null && accent.isNotEmpty && accent != 'all') query['accent'] = accent;
+    if (useCase != null && useCase.isNotEmpty && useCase != 'all') {
+      query['use_cases'] = useCase;
+    }
     final response = await _get('/v2/voices', query);
     final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     final raw = json['voices'] is List ? json['voices'] as List : [];
-    final entries = raw.whereType<Map>().map((e) => Voice.fromJson(Map<String, dynamic>.from(e)))
+    final entries = raw.whereType<Map>()
+        .map((e) => Voice.fromJson(Map<String, dynamic>.from(e)))
         .where((e) => e.id.isNotEmpty).toList();
-    final next = json['has_more'] == true ? json['next_page_token'] as String? : null;
+    final next = json['has_more'] == true && json['next_page_token'] is String
+        && (json['next_page_token'] as String).isNotEmpty
+        ? json['next_page_token'] as String : null;
     return VoicePage(entries, next);
   }
 
@@ -307,7 +332,17 @@ class ElevenApi {
       if (response.bodyBytes.isEmpty) {
         throw const ElevenApiException('Nenhum áudio foi retornado.');
       }
-      return response.bodyBytes;
+      // Não salvar uma resposta HTML/JSON de proxy como arquivo MP3.
+      final bytes = response.bodyBytes;
+      final hasId3 = bytes.length >= 3 && bytes[0] == 0x49 &&
+          bytes[1] == 0x44 && bytes[2] == 0x33;
+      final hasMpegFrame = bytes.length >= 2 && bytes[0] == 0xFF &&
+          (bytes[1] & 0xE0) == 0xE0;
+      if (!hasId3 && !hasMpegFrame) {
+        AppDiagnostics.instance.failure('API_AUDIO', 'HTTP 200 sem cabeçalho MP3 reconhecível');
+        throw const ElevenApiException('A resposta da API não contém um MP3 reconhecível.');
+      }
+      return bytes;
     } on ElevenApiException {
       rethrow;
     } catch (e, stack) {

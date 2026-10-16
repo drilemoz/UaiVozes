@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
 import 'credit_ledger.dart';
 import 'account_page.dart';
 import 'diagnostics.dart';
+import 'generation_failure.dart';
 import 'models.dart';
 import 'ui.dart';
 
@@ -113,14 +115,25 @@ class _StudioPageState extends State<StudioPage> {
         return;
       }
       if (mounted) setState(() => generating = true);
+      var audioReceived = false;
+      var audioSaved = false;
       try {
         final Uint8List bytes = await widget.model.api.synthesize(
           voiceId: voice.id, text: content);
-        // A API já pode ter cobrado. Não repetir automaticamente em erro.
-        await widget.model.recordGeneratedCharacters(content, modelId: CreditEstimator.defaultModel);
+        audioReceived = true;
+        // Primeiro preservar os bytes recebidos. Um erro de preferências ou
+        // histórico não pode impedir o MP3 de chegar à Biblioteca.
         final audio = await widget.model.saveAudio(bytes, content, voice);
+        audioSaved = true;
+        if (mounted) setState(() => lastAudio = audio);
+        try {
+          await widget.model.recordGeneratedCharacters(content,
+            modelId: CreditEstimator.defaultModel);
+        } catch (ledgerError, ledgerStack) {
+          AppDiagnostics.instance.capture('ESTUDIO_CONSUMO_LOCAL', ledgerError, ledgerStack);
+          // A geração já foi salva: não informar falha de geração.
+        }
         if (!mounted) return;
-        setState(() => lastAudio = audio); // Salvo mesmo se o player falhar.
         try {
           await player.setFilePath(audio.path);
         } catch (error, stack) {
@@ -132,10 +145,14 @@ class _StudioPageState extends State<StudioPage> {
         unawaited(widget.model.refreshUsage());
         notice(context, 'Áudio gerado e salvo na Biblioteca.');
       } catch (error, stack) {
+        final failure = GenerationFailure.classify(error,
+          audioReceived: audioReceived, audioSaved: audioSaved);
         AppDiagnostics.instance.capture('ESTUDIO_GERAR', error, stack);
-        if (mounted) notice(context,
-          'Não foi possível concluir a geração ou o salvamento. '
-          'Antes de repetir, confira sua Biblioteca e os créditos da ElevenLabs.');
+        AppDiagnostics.instance.failure('ESTUDIO_ETAPA', failure.diagnostic);
+        if (mounted) {
+          FocusScope.of(context).unfocus();
+          await showGenerationFailure(context, failure);
+        }
       } finally {
         widget.model.finishGeneration();
         if (mounted) setState(() => generating = false);
@@ -143,6 +160,43 @@ class _StudioPageState extends State<StudioPage> {
     } finally {
       confirming = false;
     }
+  }
+
+  Future<void> showGenerationFailure(BuildContext context, GenerationFailure failure) async {
+    await showModalBottomSheet<void>(
+      context: context, isScrollControlled: true, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
+        child: Column(mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.error_outline_rounded, size: 28),
+            const SizedBox(width: 12),
+            Expanded(child: Text(failure.title,
+              style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
+          ]),
+          const SizedBox(height: 16),
+          Text(failure.message),
+          if (failure.httpStatus != null) ...[
+            const SizedBox(height: 10),
+            Text('Código da API: HTTP ${failure.httpStatus}',
+              style: Theme.of(ctx).textTheme.labelLarge),
+          ],
+          const SizedBox(height: 10),
+          Text(failure.nextAction),
+          const SizedBox(height: 18),
+          Row(children: [
+            OutlinedButton.icon(onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: failure.report));
+              if (ctx.mounted) notice(ctx, 'Resumo técnico copiado, sem textos nem chave.');
+            }, icon: const Icon(Icons.copy_rounded), label: const Text('Copiar erro')),
+            const SizedBox(width: 10),
+            Expanded(child: FilledButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text('Fechar'))),
+          ]),
+        ]),
+      )),
+    );
   }
 
   Future<void> togglePlay() async {

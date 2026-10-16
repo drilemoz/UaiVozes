@@ -1,28 +1,37 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
 import 'diagnostics.dart';
+import 'eleven_api.dart';
 import 'models.dart';
 import 'ui.dart';
+import 'voice_browse_cache.dart';
 
 const voiceStyles = <String, String>{
   'all': 'Todos os estilos',
-  'calm': 'Calma',
-  'expressive': 'Expressiva',
-  'soft': 'Suave',
-  'energetic': 'Enérgica',
-  'deep': 'Grave',
+  'calm': 'Calma', 'expressive': 'Expressiva', 'soft': 'Suave',
+  'energetic': 'Enérgica', 'deep': 'Grave',
 };
 
 const voiceCategories = <String, String>{
   'all': 'Todas',
-  'narrative_story': 'Narração',
-  'conversational': 'Conversa',
-  'characters_animation': 'Personagens',
-  'educational': 'Educação',
-  'social_media': 'Redes sociais',
-  'advertisement': 'Publicidade',
+  'narrative_story': 'Narração', 'conversational': 'Conversa',
+  'characters_animation': 'Personagens', 'educational': 'Educação',
+  'social_media': 'Redes sociais', 'advertisement': 'Publicidade',
+};
+
+const voiceGenders = <String, String>{
+  'all': 'Todos', 'female': 'Feminina', 'male': 'Masculina',
+};
+const voiceAges = <String, String>{
+  'all': 'Todas', 'young': 'Jovem', 'middle_aged': 'Adulta', 'old': 'Idosa',
+};
+const voiceAccents = <String, String>{
+  'all': 'Todos', 'brazilian': 'Brasileiro', 'portuguese': 'Português',
+  'american': 'Americano', 'british': 'Britânico',
 };
 
 class VoicesPage extends StatefulWidget {
@@ -38,117 +47,205 @@ class VoicesPage extends StatefulWidget {
 class _VoicesPageState extends State<VoicesPage> {
   final searchController = TextEditingController();
   final previewPlayer = AudioPlayer();
+  final cache = VoiceBrowseCache();
   final List<Voice> ownVoices = [];
   final List<Voice> ranking = [];
+  Timer? searchDebounce;
+  StreamSubscription<PlayerState>? playerStateSubscription;
   String category = 'all';
   String voiceStyle = 'all';
+  String gender = 'all';
+  String age = 'all';
+  String accent = 'all';
   String? nextToken;
   bool loading = false;
+  bool loadingMore = false;
   bool rankingMode = false;
   bool favoritesOnly = false;
   String? error;
   String? playingId;
+  int requestVersion = 0;
+  int previewVersion = 0;
+  late String observedKey;
+  late String observedLanguage;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(refresh);
-    previewPlayer.playerStateStream.listen((state) {
+    observedKey = widget.model.key;
+    observedLanguage = widget.model.language;
+    widget.model.addListener(onModelUpdated);
+    playerStateSubscription = previewPlayer.playerStateStream.listen((state) {
       if (mounted && state.processingState == ProcessingState.completed) {
         setState(() => playingId = null);
       }
-    });
+    }, onError: (Object error, StackTrace stack) =>
+        AppDiagnostics.instance.capture('VOZES_PREVIA_STREAM', error, stack));
+    Future.microtask(refresh);
+  }
+
+  void onModelUpdated() {
+    if (observedKey == widget.model.key && observedLanguage == widget.model.language) return;
+    observedKey = widget.model.key;
+    observedLanguage = widget.model.language;
+    cache.clear(); // metadados de uma conta não devem aparecer em outra.
+    requestVersion++;
+    previewVersion++;
+    unawaited(previewPlayer.stop());
+    unawaited(refresh());
   }
 
   @override
   void dispose() {
+    widget.model.removeListener(onModelUpdated);
+    searchDebounce?.cancel();
     searchController.dispose();
+    playerStateSubscription?.cancel();
     previewPlayer.dispose();
     super.dispose();
   }
 
-  Future<void> refresh() async {
-    if (loading) return;
+  String cacheKey([String? token]) => voiceBrowseKey(
+    language: widget.model.language, ranking: rankingMode,
+    search: searchController.text, category: category,
+    style: voiceStyle, gender: gender, age: age, accent: accent, token: token,
+  );
+
+  Future<VoicePage> fetch({String? token, required int revision}) async {
+    final key = cacheKey(token);
+    final activeKey = widget.model.key;
+    final cached = cache.get(key);
+    if (cached != null) return cached;
+    late final VoicePage page;
+    if (rankingMode) {
+      if (widget.model.language == 'all') {
+        throw const FormatException('Escolha um idioma antes de abrir o Top 10.');
+      }
+      final items = await widget.model.api.topTen(
+        language: widget.model.language,
+        useCase: category == 'all' ? null : category,
+        descriptive: voiceStyle == 'all' ? null : voiceStyle,
+      );
+      page = VoicePage(items, null);
+    } else {
+      page = await widget.model.api.voices(
+        language: widget.model.language, token: token,
+        search: searchController.text.trim(),
+        gender: gender, age: age, accent: accent, useCase: category,
+      );
+    }
+    // Não reintroduzir dados da credencial anterior após uma troca de conta.
+    if (mounted && revision == requestVersion && activeKey == widget.model.key) {
+      cache.put(key, page);
+    }
+    return page;
+  }
+
+  Future<void> refresh({bool force = false}) async {
+    if (!mounted) return;
+    final request = ++requestVersion;
+    final activeKey = widget.model.key;
+    final activeLanguage = widget.model.language;
+    if (force) cache.clear();
     setState(() {
       loading = true;
+      loadingMore = false;
       error = null;
       nextToken = null;
       ownVoices.clear();
       ranking.clear();
+      playingId = null;
     });
+    if (activeKey.isEmpty) {
+      if (mounted && request == requestVersion) setState(() => loading = false);
+      return;
+    }
     try {
-      if (rankingMode) {
-        if (widget.model.language == 'all') {
-          throw const FormatException('Selecione um idioma para ver as 10 mais usadas.');
-        }
-        final result = await widget.model.api.topTen(
-          language: widget.model.language,
-          useCase: category == 'all' ? null : category,
-          descriptive: voiceStyle == 'all' ? null : voiceStyle,
-        );
-        if (!mounted) return;
-        ranking.addAll(result);
-      } else {
-        final result = await widget.model.api.voices(language: widget.model.language);
-        // Não misturar vozes de outros idiomas ao escolher Português.
-        // O filtro é aplicado pelo servidor; nomes próprios permanecem os oficiais.
-        if (!mounted) return;
-        ownVoices.addAll(result.voices);
-        nextToken = result.nextToken;
-      }
+      final result = await fetch(revision: request);
+      if (!mounted || request != requestVersion || widget.model.key != activeKey ||
+          widget.model.language != activeLanguage) return;
+      setState(() {
+        if (rankingMode) { ranking.addAll(result.voices); }
+        else { ownVoices.addAll(result.voices); nextToken = result.nextToken; }
+      });
     } catch (e, stack) {
       AppDiagnostics.instance.capture('VOZES_CARREGAR', e, stack);
-      if (mounted) error = '$e';
+      if (mounted && request == requestVersion) setState(() => error = friendlyError(e));
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted && request == requestVersion) setState(() => loading = false);
     }
   }
 
   Future<void> more() async {
-    if (loading || rankingMode || nextToken == null) return;
-    setState(() => loading = true);
+    final token = nextToken;
+    if (loading || loadingMore || rankingMode || token == null) return;
+    final request = requestVersion;
+    final activeKey = widget.model.key;
+    setState(() => loadingMore = true);
     try {
-      final result = await widget.model.api.voices(
-          language: widget.model.language, token: nextToken);
-      if (!mounted) return;
-      ownVoices.addAll(result.voices);
-      nextToken = result.nextToken;
+      final result = await fetch(token: token, revision: request);
+      if (!mounted || requestVersion != request || widget.model.key != activeKey) return;
+      final known = ownVoices.map((e) => e.id).toSet();
+      setState(() {
+        ownVoices.addAll(result.voices.where((e) => known.add(e.id)));
+        nextToken = result.nextToken == token ? null : result.nextToken;
+      });
     } catch (e, stack) {
-      AppDiagnostics.instance.capture('VOZES_REDE', e, stack);
-      if (mounted) notice(context, '$e');
+      AppDiagnostics.instance.capture('VOZES_PAGINAR', e, stack);
+      if (mounted && requestVersion == request) notice(context, friendlyError(e));
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted && requestVersion == request) setState(() => loadingMore = false);
     }
   }
 
+  void onSearch(String _) {
+    searchDebounce?.cancel();
+    if (!mounted) return;
+    setState(() {});
+    // O servidor pesquisa todo o catálogo, não apenas a primeira página.
+    // No ranking a API pública não fornece busca por texto; filtro local.
+    if (rankingMode) return;
+    searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) unawaited(refresh());
+    });
+  }
+
   Future<void> preview(Voice voice) async {
+    final sequence = ++previewVersion;
     try {
-      var url = voice.previewUrl;
-      if (playingId == voice.id && previewPlayer.playing) {
+      if (playingId == voice.id) {
         await previewPlayer.stop();
-        if (mounted) setState(() => playingId = null);
+        if (mounted && sequence == previewVersion) setState(() => playingId = null);
         return;
       }
       await previewPlayer.stop();
+      var url = voice.previewUrl;
       if (url.isEmpty && !rankingMode) {
-        final detail = await widget.model.api.voiceDetail(voice.id);
-        url = detail.previewUrl;
+        url = (await widget.model.api.voiceDetail(voice.id)).previewUrl;
       }
+      if (!mounted || sequence != previewVersion) return;
       if (url.isEmpty) {
-        if (mounted) notice(context, 'Esta voz não fornece uma prévia de áudio.');
+        notice(context, 'Esta voz não oferece uma prévia.');
         return;
       }
       final uri = Uri.tryParse(url);
-      if (uri == null || uri.scheme != 'https') {
-        throw const FormatException('URL de prévia inválida');
+      if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+        throw const FormatException('Endereço de prévia inválido');
       }
       await previewPlayer.setUrl(url);
-      if (!mounted) return;
+      if (!mounted || sequence != previewVersion) return;
       setState(() => playingId = voice.id);
-      await previewPlayer.play();
+      // play() só termina após a reprodução: não bloquear a interação até lá.
+      unawaited(previewPlayer.play().catchError((Object error, StackTrace stack) {
+        AppDiagnostics.instance.capture('VOZES_PREVIA_AUDIO', error, stack);
+        if (mounted && sequence == previewVersion) {
+          setState(() => playingId = null);
+          notice(context, 'Não foi possível reproduzir a prévia.');
+        }
+      }));
     } catch (e, stack) {
       AppDiagnostics.instance.capture('VOZES_PREVIA', e, stack);
-      if (mounted) notice(context, 'Não foi possível ouvir a prévia.');
+      if (mounted && sequence == previewVersion) notice(context, 'Não foi possível ouvir a prévia.');
     }
   }
 
@@ -156,7 +253,7 @@ class _VoicesPageState extends State<VoicesPage> {
     if (rankingMode && voice.publicOwnerId.isNotEmpty) {
       final confirmed = await confirmSheet(context,
         title: 'Adicionar voz à sua conta?',
-        message: '“${voice.name}” está na biblioteca pública. A ElevenLabs precisa adicionar essa voz à sua conta antes de gerar áudio. Pode haver restrições de plano ou de vagas.',
+        message: '“${voice.name}” pertence à biblioteca pública. Adicioná-la pode estar limitado por plano ou vagas.',
         action: 'Adicionar voz',
       );
       if (!confirmed || !mounted) return;
@@ -172,7 +269,7 @@ class _VoicesPageState extends State<VoicesPage> {
         widget.onChosen();
       } catch (e, stack) {
         AppDiagnostics.instance.capture('VOZES_SELECIONAR', e, stack);
-        if (mounted) notice(context, '$e');
+        if (mounted) notice(context, friendlyError(e));
       }
       return;
     }
@@ -181,173 +278,190 @@ class _VoicesPageState extends State<VoicesPage> {
   }
 
   bool matches(Voice voice) {
-    final query = searchController.text.trim().toLowerCase();
-    final haystack = '${voice.name} ${voice.description} ${voice.summary} ${voice.accent} ${voice.gender}'
-        .toLowerCase();
-    if (query.isNotEmpty && !haystack.contains(query)) return false;
     if (favoritesOnly && !widget.model.favoriteIds.contains(voice.id)) return false;
-    if (voiceStyle != 'all' && !rankingMode &&
-        !'${voice.style} ${voice.description}'.toLowerCase().contains(voiceStyle)) {
-      return false;
-    }
-    if (!rankingMode && category != 'all') {
-      final hay = '${voice.useCase} ${voice.description}'.toLowerCase().replaceAll(' ', '_');
-      final key = category.toLowerCase();
-      if (!hay.contains(key) && !(key == 'narrative_story' && hay.contains('narrat')) &&
-          !(key == 'conversational' && hay.contains('convers'))) return false;
+    if (rankingMode) {
+      final query = searchController.text.trim().toLowerCase();
+      if (query.isNotEmpty &&
+          !'${voice.name} ${voice.description} ${voice.summary}'.toLowerCase().contains(query)) return false;
+      if (gender != 'all' && voice.gender.toLowerCase() != gender) return false;
+      if (accent != 'all' && voice.accent.toLowerCase() != accent) return false;
+    } else if (voiceStyle != 'all') {
+      // Estilo é um filtro local: não presumir metadados que a API não fornece.
+      if (!'${voice.style} ${voice.description}'.toLowerCase().contains(voiceStyle)) return false;
     }
     return true;
   }
 
   Widget _chip(String label, bool selected, VoidCallback onPressed) =>
-      FilterChip(label: Text(label), selected: selected, onSelected: (_) => onPressed(),
-          showCheckmark: false);
+      FilterChip(label: Text(label), selected: selected,
+        onSelected: (_) => onPressed(), showCheckmark: false);
+
+  Widget _filterRow(String title, Map<String, String> options, String selected,
+      void Function(String) update, StateSetter updateSheet) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 14),
+      Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 7),
+      Wrap(spacing: 6, runSpacing: 2, children: options.entries.map((entry) =>
+          ChoiceChip(label: Text(entry.value), selected: selected == entry.key,
+            onSelected: (_) {
+              setState(() => update(entry.key));
+              updateSheet(() {});
+            })).toList()),
+    ]);
+  }
+
+  Future<void> showFilters() async {
+    await showModalBottomSheet<void>(
+      context: context, showDragHandle: true, isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, updateSheet) => SafeArea(
+        child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Filtros de voz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 21)),
+            _filterRow('Finalidade', voiceCategories, category, (v) => category = v, updateSheet),
+            _filterRow('Estilo (descrição)', voiceStyles, voiceStyle, (v) => voiceStyle = v, updateSheet),
+            _filterRow('Gênero', voiceGenders, gender, (v) => gender = v, updateSheet),
+            if (!rankingMode) _filterRow('Faixa etária', voiceAges, age, (v) => age = v, updateSheet),
+            _filterRow('Sotaque', voiceAccents, accent, (v) => accent = v, updateSheet),
+            const SizedBox(height: 16),
+            Row(children: [
+              OutlinedButton(onPressed: () {
+                setState(() { category = 'all'; voiceStyle = 'all'; gender = 'all';
+                  age = 'all'; accent = 'all'; });
+                Navigator.pop(ctx);
+              }, child: const Text('Limpar')),
+              const SizedBox(width: 12),
+              Expanded(child: FilledButton(onPressed: () => Navigator.pop(ctx),
+                child: const Text('Aplicar filtros'))),
+            ]),
+          ]),
+        ),
+      )),
+    );
+    if (mounted) unawaited(refresh());
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final visible = (rankingMode ? ranking : ownVoices).where(matches).toList();
+    final filterActive = category != 'all' || voiceStyle != 'all' || gender != 'all' ||
+        age != 'all' || accent != 'all';
     return SafeArea(child: RefreshIndicator(
-      onRefresh: refresh,
+      onRefresh: () => refresh(force: true),
       child: ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 26), children: [
         Row(children: [
-          Expanded(child: Text('Explorar vozes', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800))),
+          Expanded(child: Text('Explorar vozes', style: theme.textTheme.headlineMedium
+              ?.copyWith(fontWeight: FontWeight.w800))),
           IconButton(
             icon: Icon(favoritesOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               color: favoritesOnly ? theme.colorScheme.primary : null),
             tooltip: favoritesOnly ? 'Mostrar todas as vozes' : 'Mostrar só favoritas',
             isSelected: favoritesOnly,
             onPressed: () => setState(() => favoritesOnly = !favoritesOnly)),
-          IconButton(icon: const Icon(Icons.tune_rounded), tooltip: 'Filtrar vozes', onPressed: () => showModalBottomSheet(
-              context: context, showDragHandle: true, isScrollControlled: true,
-              builder: (ctx) => SafeArea(child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 5, 24, 24),
-                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Filtrar por categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                  const SizedBox(height: 12),
-                  Wrap(spacing: 8, runSpacing: 5, children: voiceCategories.entries.map((e) =>
-                      ChoiceChip(label: Text(e.value), selected: category == e.key, onSelected: (_) {
-                        setState(() => category = e.key);
-                        Navigator.pop(ctx);
-                        if (rankingMode) refresh();
-                      })).toList()),
-                  const SizedBox(height: 19),
-                  const Text('Estilo da voz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const SizedBox(height: 9),
-                  Wrap(spacing: 8, runSpacing: 5, children: voiceStyles.entries.map((e) =>
-                      ChoiceChip(label: Text(e.value), selected: voiceStyle == e.key,
-                        onSelected: (_) {
-                          setState(() => voiceStyle = e.key);
-                          Navigator.pop(ctx);
-                          if (rankingMode) refresh();
-                        })).toList()),
-                ]),
-              )))
-          ),
+          IconButton(icon: Icon(Icons.tune_rounded,
+              color: filterActive ? theme.colorScheme.primary : null),
+            tooltip: 'Filtrar vozes', onPressed: showFilters),
         ]),
-        const SizedBox(height: 16),
-        TextField(
-          controller: searchController,
-          onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search_rounded),
-            hintText: 'Buscar por nome ou característica…',
-          ),
-        ),
-        const SizedBox(height: 13),
-        // Apenas um filtro de favoritas no topo, sem ocupar outra linha.
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+        const SizedBox(height: 14),
+        TextField(controller: searchController, onChanged: onSearch,
+          decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded),
+            hintText: rankingMode ? 'Buscar dentro das 10 vozes…' : 'Buscar em todas as vozes…',
+            suffixIcon: searchController.text.isEmpty ? null : IconButton(
+              icon: const Icon(Icons.clear_rounded), tooltip: 'Limpar busca',
+              onPressed: () {searchController.clear(); onSearch('');}),
+          )),
+        const SizedBox(height: 11),
+        SingleChildScrollView(scrollDirection: Axis.horizontal,
           child: Row(children: [
             DropdownButtonHideUnderline(child: DropdownButton<String>(
               value: widget.model.language,
               icon: const Icon(Icons.keyboard_arrow_down_rounded),
               borderRadius: BorderRadius.circular(19),
               items: languages.entries.map((e) => DropdownMenuItem(
-                  value: e.key, child: Text(e.value))).toList(),
+                value: e.key, child: Text(e.value))).toList(),
               onChanged: (val) async {
-                if (val == null) return;
-                await widget.model.setLanguage(val);
-                await refresh();
+                if (val != null) await widget.model.setLanguage(val);
               },
             )),
             const SizedBox(width: 9),
             _chip('Minhas vozes', !rankingMode, () {
-              setState(() => rankingMode = false);
-              refresh();
+              if (rankingMode) {setState(() => rankingMode = false); unawaited(refresh());}
             }),
             const SizedBox(width: 7),
             _chip('Top 10', rankingMode, () {
-              setState(() => rankingMode = true);
-              refresh();
+              if (!rankingMode) {setState(() { rankingMode = true; age = 'all'; }); unawaited(refresh());}
             }),
-          ]),
-        ),
-        if (category != 'all' || voiceStyle != 'all') Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          ])),
+        if (filterActive) Padding(padding: const EdgeInsets.symmetric(vertical: 9),
           child: Row(children: [
             Icon(Icons.filter_list_rounded, color: theme.colorScheme.primary, size: 19),
             const SizedBox(width: 7),
-            Expanded(child: Text([
-              if (category != 'all') voiceCategories[category] ?? category,
-              if (voiceStyle != 'all') voiceStyles[voiceStyle] ?? voiceStyle,
-            ].join(' • '))),
-            TextButton(onPressed: () { setState(() { category = 'all'; voiceStyle = 'all'; }); if (rankingMode) refresh(); },
-                child: const Text('Limpar')),
-          ]),
-        ),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text(
-          rankingMode ? 'Classificação real por caracteres utilizados no último ano. Depende do acesso à Voice Library.'
-              : 'Vozes retornadas pela API para o idioma selecionado. Nomes oficiais podem estar em inglês; categorias são traduzidas.',
-          style: theme.textTheme.bodySmall,
-        )),
+            const Expanded(child: Text('Filtros ativos')),
+            TextButton(onPressed: () {
+              setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
+                age = 'all'; accent = 'all';});
+              unawaited(refresh());
+            }, child: const Text('Limpar')),
+          ])),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Text(rankingMode
+              ? 'Top 10 real por uso no último ano; depende da permissão da conta. A busca filtra somente este Top 10.'
+              : 'Busca e filtros consultam a API. Use “Carregar mais” para outras páginas; estilos são filtrados pelos metadados disponíveis.',
+            style: theme.textTheme.bodySmall)),
         if (widget.model.key.isEmpty)
           EmptyState(icon: Icons.key_rounded, title: 'Conecte sua conta',
-              description: 'É necessário configurar uma chave API para explorar vozes.',
-              action: FilledButton(onPressed: widget.openSettings, child: const Text('Configurar API')))
+            description: 'Configure sua chave API para explorar vozes.',
+            action: FilledButton(onPressed: widget.openSettings,
+              child: const Text('Configurar API')))
         else if (error != null)
-          EmptyState(icon: Icons.lock_outline_rounded, title: rankingMode ? 'Ranking indisponível' : 'Não foi possível listar vozes',
-              description: error!,
-              action: OutlinedButton(onPressed: refresh, child: const Text('Tentar novamente')))
+          EmptyState(icon: Icons.lock_outline_rounded,
+            title: rankingMode ? 'Ranking indisponível' : 'Não foi possível listar vozes',
+            description: error!,
+            action: OutlinedButton(onPressed: () => refresh(force: true),
+              child: const Text('Tentar novamente')))
         else if (visible.isEmpty && !loading)
           EmptyState(icon: Icons.mic_off_outlined, title: 'Nenhuma voz encontrada',
-              description: rankingMode ? 'Não há ranking acessível para esse idioma/filtro.'
-                  : 'A conta não retornou vozes neste idioma. Experimente Top 10 ou outro idioma; não foram adicionadas vozes em inglês como substituição.',
-              action: OutlinedButton(onPressed: () {searchController.clear(); setState(() { category = 'all'; voiceStyle = 'all'; }); refresh();},
-                  child: const Text('Limpar filtros')))
-        else ...visible.map((voice) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+            description: loadingMore ? 'Buscando...' : rankingMode
+                ? 'Sem dados para este idioma e filtro. O ranking pode exigir outro plano.'
+                : 'A API não retornou vozes com estes filtros nesta página.',
+            action: OutlinedButton(onPressed: () {
+              searchDebounce?.cancel(); searchController.clear();
+              setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
+                age = 'all'; accent = 'all'; favoritesOnly = false;});
+              unawaited(refresh(force: true));
+            }, child: const Text('Limpar filtros')))
+        else ...visible.map((voice) => Padding(padding: const EdgeInsets.only(bottom: 10),
           child: UaiVozesCard(child: Row(children: [
             CircleAvatar(radius: 25,
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
               child: Icon(Icons.mic_none_rounded, color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(width: 12),
-            Expanded(child: InkWell(
-              onTap: () => select(voice),
+            Expanded(child: InkWell(onTap: () => select(voice),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(voice.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 5),
                 Text(voice.summary.isEmpty ? 'Voz ElevenLabs' : voice.summary,
-                    maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                  maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
                 if (rankingMode && voice.annualCharacters != null)
                   Text('${voice.annualCharacters} caracteres/ano', style: theme.textTheme.labelSmall),
-              ]),
-            )),
+              ]))),
             IconButton(tooltip: 'Ouvir prévia', onPressed: () => preview(voice),
               icon: Icon(playingId == voice.id ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
-                  color: theme.colorScheme.primary)),
+                color: theme.colorScheme.primary)),
             IconButton(tooltip: 'Favoritar', onPressed: () async {
               await widget.model.toggleFavorite(voice.id);
               if (mounted) setState(() {});
             }, icon: Icon(widget.model.favoriteIds.contains(voice.id)
                 ? Icons.favorite_rounded : Icons.favorite_border_rounded)),
-          ])),
-        )),
+          ]))),
         if (loading) const Padding(padding: EdgeInsets.all(18),
-            child: Center(child: CircularProgressIndicator())),
+          child: Center(child: CircularProgressIndicator())),
         if (!rankingMode && nextToken != null && !loading)
-          OutlinedButton.icon(onPressed: more,
-              icon: const Icon(Icons.expand_more_rounded), label: const Text('Carregar mais vozes')),
+          OutlinedButton.icon(onPressed: loadingMore ? null : more,
+            icon: loadingMore ? const SizedBox(width: 18, height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.expand_more_rounded),
+            label: Text(loadingMore ? 'Carregando…' : 'Carregar mais vozes')),
       ]),
     ));
   }

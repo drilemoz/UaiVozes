@@ -1,13 +1,14 @@
-# Uai Vozes v0.09 · 0.1.0-alpha.9+9 (versionCode 9)
+# Uai Vozes v0.11 · 0.1.0-alpha.11+11 (versionCode 11)
 
-- Central de créditos com histórico local de até 60 gerações, sem salvar textos, voz, chave ou outros dados sensíveis nesse histórico.
-- Alertas visuais configuráveis aos 50%, 80% e 95% do limite reportado pela ElevenLabs, consultado na API.
-- Distinção entre saldo de uso oficial, caracteres locais acumulados no calendário e estimativa base (sem garantia de custo cobrado, pois planos e vozes podem variar).
-- Consulta atrasada da conta anterior não substitui dados após trocar a chave API.
-- Novos testes automatizados para contagens Unicode, limpeza de dados inválidos e faixas de alertas.
+- Corrigida mensagem genérica de falha: o Estúdio agora apresenta etapa, status HTTP quando existe, orientações e botão de copiar resumo seguro.
+- Diagnóstico registra código HTTP e categoria da operação, sem corpo da API, texto do usuário ou chave API.
+- Priorizado salvamento do MP3 antes da contabilidade local, evitando perda do áudio por falha em preferências.
+- Validação básica do cabeçalho MP3 impede salvar resposta HTML/JSON como arquivo de áudio.
+- Nenhuma retentativa automática de geração: falhas ambíguas podem ter consumido créditos.
+- Testes para resposta de erro, proteção de dados, áudio inválido, classificação por etapa e sucesso com MP3 válido.
 
-**Compatibilidade:** pacote `com.drilemoz.uaivozes` e assinatura release com os mesmos quatro Secrets existentes. Não reenviar Secrets nem alterar a keystore.
+**Limite da análise:** o print da v0.10 não informa o status HTTP; não é possível confirmar a causa externa (voz/plano/rede) sem novo diagnóstico ou log.
 
-**Validação:** código preparado para `flutter analyze`, `flutter test` e build Release no GitHub Actions. Não há compilação Android local confirmada nesta entrega.
+**Assinatura:** mesmos Secrets e `com.drilemoz.uaivozes`. APK previsto `Uai-Vozes-v0.11.apk`, separado do ZIP.
 
-APK previsto fora do ZIP: `Uai-Vozes-v0.09.apk` com SHA-256 no Artifact. A publicação em Releases é opcional.
+**Testes pendentes:** `flutter analyze`, `flutter test`, APK e verificação em aparelho via GitHub Actions.

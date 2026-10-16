@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 0.1.0-alpha.11+11
+- Diferencia erro de API (HTTP), falha de salvamento e erro interno, com orientação e cópia segura.
+- Salva MP3 antes de contabilizar consumo local; valida assinatura MP3.
+- Novos testes de regressão e versão sincronizada.
+
+## 0.1.0-alpha.10+10 · 16/10/2026
+- Busca de vozes via API v2 com 400 ms de debounce e paginação por token, evitando resultados perdidos em páginas não carregadas.
+- Novos filtros por finalidade, gênero, faixa etária e sotaque, usando parâmetros oficialmente aceitos. Estilo local conforme metadados disponíveis.
+- Cache de metadados apenas em RAM por até três minutos e dez páginas, invalidado ao trocar API key ou idioma.
+- Proteção contra resultados atrasados, controle aprimorado das prévias e cancelamento de assinaturas do player.
+- Top 10 público real permanece distinto do catálogo da conta. Novos testes de requisições, paginação, cache e expiração. Sem bibliotecas novas.
+- Identificador Android `com.drilemoz.uaivozes`, certificado e quatro Secrets preservados. Testes Flutter e build real pendentes de CI.
+
+
 ## 0.1.0-alpha.9+9 · 16/10/2026
 - Central de créditos ampliada com histórico local de até 60 gerações, armazenando apenas data, modelo, caracteres e referência estimada, sem texto ou chave.
 - Alertas visuais opcionais para 50%, 80% e 95% do limite consultado via API, sem notificações em segundo plano.
@@ -73,4 +87,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.9+9. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.11+11. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
