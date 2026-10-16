@@ -10,3 +10,6 @@
 - Validar flutter analyze, flutter test e build Android no GitHub Actions antes de afirmar APK testado.
 
 - Diagnósticos: não registrar chaves, cabeçalhos, corpo HTTP, prompts/textos e caminhos externos. Limitar histórico a 100 eventos com exportação controlada pelo usuário.
+
+- Dados de consumo: nunca apresentar `character_count` como créditos faturados universais; distinguir informação da API e estimativa local.
+- Fluxo inicial: abrir novidades antes do assistente de configuração.

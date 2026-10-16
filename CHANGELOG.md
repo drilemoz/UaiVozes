@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 0.1.0-alpha.4+4 · 16/10/2026
+
+- Estúdio: indicador consultável de uso/limite do período ao lado do título, atualização da assinatura e referência aproximada de caracteres do texto antes de gerar e contador local do mês desde o início do acompanhamento. Não confunde contagem de caracteres com créditos exatos.
+- Conta ElevenLabs em Ajustes: perfil autorizado, workspace parcialmente mascarado, plano, status, vagas de voz, ciclo, saldo, renovação e erros de permissão.
+- Exibe novidades antes do assistente de primeira configuração.
+- Explorar vozes: favoritas passa a ser filtro por ícone no cabeçalho; idioma e Minhas vozes/Top 10 em uma única linha rolável.
+- Aparência: temas Branco, AMOLED e Sistema em seletor horizontal.
+- Separação de modelos de assinatura/conta e componentes de consumo para facilitar testes e manutenção.
+- Versão, Android versionCode e nome do APK sincronizados; sem alteração do package name e sem apagar áudios.
+
 ## 0.1.0-alpha.3+3 · 16/10/2026
 
 - Botão **Obter chave API** no wizard e nas Configurações abre `https://elevenlabs.io/app/settings/api-keys` no navegador externo.
@@ -22,4 +32,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.4+4. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.5+5. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

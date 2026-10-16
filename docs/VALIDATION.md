@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.3+3
+# Validação da versão 0.1.0-alpha.4+4
 
 ## Causa do workflow anterior
 
@@ -20,3 +20,12 @@ Também foram alterados o identificador Android (`com.drilemoz.uaivozes`), o pac
 ## Pendências
 
 Não há SDK Flutter ou Android no ambiente local; o resultado de `flutter analyze`, `flutter test`, `flutter build apk`, instalação e acesso à API precisa ser verificado pelo próximo run do workflow. Não declarar APK testado antes disso.
+
+## Novidades alpha.4
+
+- Separado o DTO de usuário (`ElevenAccount`) do DTO de assinatura (`Subscription`), com parsing defensivo de campos opcionais e sem inventar dados.
+- UI do consumo isolada em `account_page.dart`, utilizada no Estúdio e em Ajustes.
+- `showChangesSheet` agora retorna `Future<void>` para apresentar novidades antes do wizard.
+- Seleção de temas usa `SegmentedButton` horizontal; filtro de favoritas compactado num ícone.
+- Testes novos: parsing de assinatura/conta, disponibilidade de dados e casos sem valores; indicador de estimativa local mensal.
+- Validação estrutural local não substitui `flutter analyze`, `flutter test` e build CI.

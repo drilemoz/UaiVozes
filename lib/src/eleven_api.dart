@@ -28,10 +28,83 @@ String friendlyError(Object error) {
 }
 
 class Subscription {
-  const Subscription({required this.tier, this.used, this.limit});
+  const Subscription({
+    required this.tier,
+    this.used,
+    this.limit,
+    this.status = '',
+    this.voiceSlotsUsed,
+    this.voiceLimit,
+    this.resetAt,
+    this.billingPeriod = '',
+    this.overageAmount,
+    this.overageCurrency,
+  });
+
   final String tier;
+  /// Contagem reportada pela API (caracteres/unidades de uso), não uma
+  /// estimativa de créditos faturados para qualquer modelo.
   final int? used;
   final int? limit;
+  final String status;
+  final int? voiceSlotsUsed;
+  final int? voiceLimit;
+  final DateTime? resetAt;
+  final String billingPeriod;
+  final String? overageAmount;
+  final String? overageCurrency;
+
+  int? get remaining => used == null || limit == null
+      ? null : (limit! - used!).clamp(0, limit!).toInt();
+  double? get usageRatio => used == null || limit == null || limit! <= 0
+      ? null : (used! / limit!).clamp(0.0, 1.0).toDouble();
+
+  factory Subscription.fromJson(Map<String, dynamic> json) {
+    final reset = json['next_character_count_reset_unix'];
+    final overage = json['current_overage'];
+    final overageData = overage is Map ? overage : const {};
+    return Subscription(
+      tier: '${json['tier'] ?? 'desconhecido'}',
+      used: (json['character_count'] as num?)?.toInt(),
+      limit: (json['character_limit'] as num?)?.toInt(),
+      status: '${json['status'] ?? ''}',
+      voiceSlotsUsed: (json['voice_slots_used'] as num?)?.toInt(),
+      voiceLimit: (json['voice_limit'] as num?)?.toInt(),
+      resetAt: reset is num && reset > 0
+          ? DateTime.fromMillisecondsSinceEpoch(reset.toInt() * 1000, isUtc: true).toLocal()
+          : null,
+      billingPeriod: '${json['billing_period'] ?? ''}',
+      overageAmount: overageData['amount']?.toString(),
+      overageCurrency: overageData['currency']?.toString(),
+    );
+  }
+}
+
+class ElevenAccount {
+  const ElevenAccount({
+    this.firstName = '',
+    this.userId = '',
+    this.workspaceId = '',
+    this.seatType = '',
+    this.subscription,
+  });
+  final String firstName;
+  final String userId;
+  final String workspaceId;
+  final String seatType;
+  final Subscription? subscription;
+
+  factory ElevenAccount.fromJson(Map<String, dynamic> json) {
+    final nested = json['subscription'];
+    return ElevenAccount(
+      firstName: json['first_name'] is String ? json['first_name'] as String : '',
+      userId: json['user_id'] is String ? json['user_id'] as String : '',
+      workspaceId: json['workspace_id'] is String ? json['workspace_id'] as String : '',
+      seatType: json['seat_type'] is String ? json['seat_type'] as String : '',
+      subscription: nested is Map
+          ? Subscription.fromJson(Map<String, dynamic>.from(nested)) : null,
+    );
+  }
 }
 
 class VoicePage {
@@ -110,12 +183,15 @@ class ElevenApi {
 
   Future<Subscription> checkSubscription() async {
     final response = await _get('/v1/user/subscription');
-    final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    return Subscription(
-      tier: '${json['tier'] ?? 'desconhecido'}',
-      used: (json['character_count'] as num?)?.toInt(),
-      limit: (json['character_limit'] as num?)?.toInt(),
-    );
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return Subscription.fromJson(data);
+  }
+
+  /// Os dados pessoais só ficam disponíveis com escopo User: Read na chave.
+  Future<ElevenAccount> getAccount() async {
+    final response = await _get('/v1/user');
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return ElevenAccount.fromJson(data);
   }
 
   Future<VoicePage> voices({String? token, String? language}) async {

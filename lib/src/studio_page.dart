@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
+import 'account_page.dart';
 import 'diagnostics.dart';
 import 'models.dart';
 import 'ui.dart';
@@ -74,11 +75,16 @@ class _StudioPageState extends State<StudioPage> {
     setState(() => generating = true);
     try {
       final Uint8List bytes = await widget.model.api.synthesize(voiceId: voice.id, text: content);
+      // Cobrança potencial já ocorreu na API; contabiliza antes de gravar MP3.
+      await widget.model.recordGeneratedCharacters(content);
       final audio = await widget.model.saveAudio(bytes, content, voice);
       if (!mounted) return;
       await player.setFilePath(audio.path);
       if (!mounted) return;
       setState(() => lastAudio = audio);
+      // Consulta o saldo após a geração, sem repetir a síntese e sem
+      // interferir no salvamento do MP3 caso a consulta falhe.
+      unawaited(widget.model.refreshUsage());
       notice(context, 'Áudio gerado e salvo na biblioteca.');
     } catch (e, stack) {
       AppDiagnostics.instance.capture('ESTUDIO_GERAR', e, stack);
@@ -113,14 +119,28 @@ class _StudioPageState extends State<StudioPage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(19, 8, 19, 30),
         children: [
-          Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Estúdio', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 3),
-              Text('Suas palavras, outra dimensão sonora.', style: theme.textTheme.bodyMedium),
-            ])),
-            const CircleAvatar(radius: 23, child: Icon(Icons.graphic_eq_rounded)),
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Text('Estúdio', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(width: 9),
+            Expanded(child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                visualDensity: VisualDensity.compact,
+              ),
+              onPressed: () => showUsageSheet(context, widget.model,
+                upcomingCharacters: text.text.trim().runes.length),
+              icon: const Icon(Icons.toll_outlined, size: 17),
+              label: FittedBox(fit: BoxFit.scaleDown, child: Text(
+                widget.model.subscription?.used != null &&
+                widget.model.subscription?.limit != null
+                ? '${widget.model.subscription!.used} / ${widget.model.subscription!.limit}'
+                : widget.model.refreshingUsage ? 'Consultando…' : 'Consumo mensal',
+                maxLines: 1,
+              )),
+            )),
           ]),
+          const SizedBox(height: 4),
+          Text('Suas palavras, outra dimensão sonora.', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 18),
           const SectionTitle('Seu texto'),
           TextField(
@@ -181,7 +201,7 @@ class _StudioPageState extends State<StudioPage> {
                 child: Text(generating ? 'Gerando áudio…' : 'Gerar e salvar áudio')),
           ),
           const SizedBox(height: 9),
-          Text('A geração usa seus créditos ElevenLabs e requer internet.',
+          Text('A geração pode consumir créditos ElevenLabs e requer internet.',
               textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
           if (lastAudio != null) ...[
             const SizedBox(height: 22),

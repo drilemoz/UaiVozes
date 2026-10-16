@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app_model.dart';
+import 'account_page.dart';
 import 'eleven_links.dart';
 import 'eleven_api.dart';
 import 'diagnostics.dart';
@@ -197,32 +198,41 @@ class _SettingsPageState extends State<SettingsPage> {
           Text('Somente armazenamento seguro local. Não envie sua chave a terceiros.',
               style: theme.textTheme.bodySmall),
         ])),
+        header(context, 'Conta ElevenLabs'),
+        UaiVozesCard(child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.account_circle_outlined),
+          title: const Text('Conta e consumo'),
+          subtitle: const Text('Plano, dados disponíveis, limite e uso do período'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => AccountPage(model: widget.model))),
+        )),
         header(context, 'Aparência'),
-        UaiVozesCard(child: RadioGroup<ThemeMode>(
-          groupValue: widget.model.themeMode,
-          onChanged: (value) {
-            if (value != null) widget.model.setTheme(value);
-          },
-          child: Column(children: [
-          RadioListTile<ThemeMode>(
-            contentPadding: EdgeInsets.zero, title: const Text('Branco'),
-            subtitle: const Text('Fundo claro e superfícies limpas'),
-            secondary: const Icon(Icons.light_mode_outlined),
-            value: ThemeMode.light,
-          ),
-          RadioListTile<ThemeMode>(
-            contentPadding: EdgeInsets.zero, title: const Text('Preto AMOLED'),
-            subtitle: const Text('Preto real #000000, sem cinza lavado'),
-            secondary: const Icon(Icons.dark_mode_outlined),
-            value: ThemeMode.dark,
-          ),
-          RadioListTile<ThemeMode>(
-            contentPadding: EdgeInsets.zero, title: const Text('Sistema'),
-            subtitle: const Text('Segue o tema do Android'),
-            secondary: const Icon(Icons.settings_suggest_outlined),
-            value: ThemeMode.system,
-          ),
-        ]))),
+        UaiVozesCard(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: double.infinity, child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: ThemeMode.light, label: Text('Branco'),
+                  icon: Icon(Icons.light_mode_outlined, size: 17)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('AMOLED'),
+                  icon: Icon(Icons.dark_mode_outlined, size: 17)),
+                ButtonSegment(value: ThemeMode.system, label: Text('Sistema'),
+                  icon: Icon(Icons.settings_suggest_outlined, size: 17)),
+              ],
+              selected: {widget.model.themeMode},
+              onSelectionChanged: (values) => widget.model.setTheme(values.first),
+            )),
+            const SizedBox(height: 8),
+            Text(switch (widget.model.themeMode) {
+              ThemeMode.light => 'Branco: fundo claro e superfícies limpas.',
+              ThemeMode.dark => 'AMOLED: preto real #000000.',
+              ThemeMode.system => 'Segue a aparência configurada no Android.',
+            }, style: theme.textTheme.bodySmall),
+          ],
+        )),
         header(context, 'Aplicativo'),
         UaiVozesCard(child: Column(children: [
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.auto_awesome_rounded),
@@ -246,6 +256,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.4': [
+    'Consumo de assinatura no Estúdio, com consulta à API e estimativa do texto.',
+    'Tela Conta ElevenLabs com plano, limites, vagas de voz e dados autorizados.',
+    'Novidades antes do assistente; filtro de favoritas compacto e temas lado a lado.',
+  ],
   '0.1.0-alpha.3': [
     'Link oficial para criar a chave API, nas Configurações e no assistente.',
     'Feedback visível de sucesso/erro ao guardar e testar a API.',
@@ -263,8 +278,8 @@ const releaseNotes = <String, List<String>>{
   ],
 };
 
-void showChangesSheet(BuildContext context, AppModel model) {
-  showModalBottomSheet<void>(context: context, showDragHandle: true,
+Future<void> showChangesSheet(BuildContext context, AppModel model) {
+  return showModalBottomSheet<void>(context: context, showDragHandle: true,
     isScrollControlled: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),

@@ -12,8 +12,8 @@ import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.3';
-  static const versionCode = 3;
+  static const version = '0.1.0-alpha.4';
+  static const versionCode = 4;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -28,6 +28,15 @@ class AppModel extends ChangeNotifier {
   String lastSeenVersion = '';
   Voice? selectedVoice;
   Subscription? subscription;
+  ElevenAccount? account;
+  DateTime? usageUpdatedAt;
+  bool refreshingUsage = false;
+  bool refreshingAccount = false;
+  String? usageError;
+  String? accountError;
+  int localGeneratedCharacters = 0;
+  DateTime? localTrackingSince;
+  String localUsageMonth = '';
   final List<AudioRecord> library = [];
   final Set<String> favoriteIds = {};
 
@@ -47,6 +56,12 @@ class AppModel extends ChangeNotifier {
     language = _prefs?.getString('language') ?? 'pt';
     draft = _prefs?.getString('draft') ?? '';
     lastSeenVersion = _prefs?.getString('seen_version') ?? '';
+    localUsageMonth = _prefs?.getString('local_usage_month') ?? '';
+    localGeneratedCharacters = _prefs?.getInt('local_usage_characters') ?? 0;
+    localTrackingSince = DateTime.tryParse(_prefs?.getString('local_usage_start') ?? '');
+    if (localUsageMonth != _monthKey(DateTime.now())) {
+      await _resetLocalUsage();
+    }
     favoriteIds.addAll(_prefs?.getStringList('favorites') ?? []);
     try {
       final rawVoice = _prefs?.getString('selected_voice');
@@ -74,15 +89,93 @@ class AppModel extends ChangeNotifier {
     } else {
       await _storage.write(key: 'elevenlabs_api_key', value: clean);
     }
+    final changed = clean != key;
     key = clean;
+    if (changed) await _resetLocalUsage();
     subscription = null;
+    account = null;
+    usageUpdatedAt = null;
+    usageError = null;
+    accountError = null;
     notifyListeners();
   }
 
   Future<Subscription> testKey() async {
-    subscription = await api.checkSubscription();
+    final result = await api.checkSubscription();
+    subscription = result;
+    usageUpdatedAt = DateTime.now();
+    usageError = null;
     notifyListeners();
-    return subscription!;
+    return result;
+  }
+
+  /// Atualização sob demanda ou na entrada do app. Não cobra créditos por gerar
+  /// áudio e não faz tentativas automáticas em caso de falha.
+  Future<void> refreshUsage() async {
+    if (refreshingUsage || key.isEmpty) return;
+    refreshingUsage = true;
+    usageError = null;
+    notifyListeners();
+    try {
+      await testKey();
+    } catch (error, stack) {
+      AppDiagnostics.instance.capture('CONTA_CONSUMO', error, stack);
+      usageError = friendlyError(error);
+    } finally {
+      refreshingUsage = false;
+      notifyListeners();
+    }
+  }
+
+  /// Mantém dados básicos opcionais separados da assinatura: chaves sem
+  /// permissão User: Read ainda conseguem ver o consumo, se autorizadas.
+  Future<void> refreshAccount() async {
+    if (refreshingAccount || key.isEmpty) return;
+    refreshingAccount = true;
+    accountError = null;
+    notifyListeners();
+    try {
+      account = await api.getAccount();
+      if (account!.subscription != null) {
+        subscription = account!.subscription;
+        usageUpdatedAt = DateTime.now();
+        usageError = null;
+      }
+    } catch (error, stack) {
+      AppDiagnostics.instance.capture('CONTA_USUARIO', error, stack);
+      accountError = friendlyError(error);
+    }
+    // Mesmo com escopo User: Read restrito, tenta atualizar a assinatura.
+    await refreshUsage();
+    refreshingAccount = false;
+    notifyListeners();
+  }
+
+  static String _monthKey(DateTime at) =>
+      '${at.year}-${at.month.toString().padLeft(2, '0')}';
+
+  Future<void> _resetLocalUsage() async {
+    localUsageMonth = _monthKey(DateTime.now());
+    localGeneratedCharacters = 0;
+    localTrackingSince = DateTime.now();
+    await _prefs?.setString('local_usage_month', localUsageMonth);
+    await _prefs?.setInt('local_usage_characters', 0);
+    await _prefs?.setString('local_usage_start', localTrackingSince!.toIso8601String());
+    notifyListeners();
+  }
+
+  /// Contagem estimativa local: apenas textos enviados por este app desde o
+  /// início do acompanhamento, nunca valor faturado em créditos reais.
+  Future<void> recordGeneratedCharacters(String generatedText) async {
+    if (localUsageMonth != _monthKey(DateTime.now())) await _resetLocalUsage();
+    localGeneratedCharacters += generatedText.trim().runes.length;
+    try {
+      await _prefs?.setInt('local_usage_characters', localGeneratedCharacters);
+    } catch (error, stack) {
+      AppDiagnostics.instance.capture('CONSUMO_LOCAL_SALVAR', error, stack);
+      // A falha desta estimativa não deve impedir salvar um áudio pago.
+    }
+    notifyListeners();
   }
 
   Future<void> setTheme(ThemeMode next) async {

@@ -69,18 +69,26 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (widget.model.key.isEmpty) {
-        showWizard();
-      } else if (widget.model.lastSeenVersion != AppModel.version) {
-        showChangesSheet(context, widget.model);
-      }
+      if (mounted) unawaited(_initialFlow());
     });
   }
 
   void tab(int next) { if (mounted) setState(() => index = next); }
 
-  void showWizard() async {
+  Future<void> _initialFlow() async {
+    // Novidades sempre primeiro, inclusive na instalação inicial.
+    if (widget.model.lastSeenVersion != AppModel.version) {
+      await showChangesSheet(context, widget.model);
+    }
+    if (!mounted) return;
+    if (widget.model.key.isEmpty) {
+      await showWizard();
+    } else {
+      unawaited(widget.model.refreshUsage());
+    }
+  }
+
+  Future<void> showWizard() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -93,9 +101,6 @@ class _MainShellState extends State<MainShell> {
         onExplore: () { Navigator.pop(ctx); tab(1); },
       ),
     );
-    if (mounted && widget.model.lastSeenVersion != AppModel.version) {
-      showChangesSheet(context, widget.model);
-    }
   }
 
   @override

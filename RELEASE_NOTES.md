@@ -1,18 +1,18 @@
-# Uai, Vozes v0.03 · 0.1.0-alpha.3 (versionCode 3)
+# Uai, Vozes v0.04 · 0.1.0-alpha.4 (versionCode 4)
 
-## Alterações
+## Novidades
 
-- Link oficial da ElevenLabs para criar chave API nas Configurações e assistente inicial.
-- Mensagens visíveis ao salvar ou testar uma chave, com indicação de sucesso ou erro.
-- Diagnóstico local em **Configurações → Sobre o Uai, Vozes → Erros do aplicativo**.
-- Captura de falhas de Flutter e Dart e erros tratados de rede, geração, voz e reprodução; exportação TXT por compartilhamento Android ou cópia.
-- Sem registro de chave API, texto convertido ou conteúdo privado de chamadas HTTP.
-- Mantidos visual branco/AMOLED, biblioteca, ranking real condicionado a conta e demais recursos anteriores.
+- Consumo consultável no **Estúdio**, com contagem e limite disponíveis pela API da ElevenLabs, botão atualizar e estimativa de caracteres do texto e somatório local do mês (desde o início do monitoramento).
+- **Ajustes → Conta ElevenLabs**: dados de usuário permitidos pela chave, plano, status, limites, vagas de voz e próxima renovação.
+- Tela **O que mudou?** é exibida antes do assistente inicial após instalar ou atualizar.
+- Explorar vozes: filtro de favoritas agora é um ícone; sem botão redundante que quebre a linha.
+- **Branco, AMOLED e Sistema** lado a lado em Ajustes.
+- Componentes internos reorganizados para reduzir duplicação.
+
+## Consumo e privacidade
+
+A API disponibiliza contagens e limites do ciclo da assinatura, não um conversor universal de caracteres para créditos. O texto do editor apresenta referência aproximada, nunca cobrança exata. Dados da conta podem exigir permissão **User: Read**. Sem acesso, o aplicativo informa limitação e preserva as demais funções.
 
 ## APK
 
-Após o workflow de compilação, `Uai-Vozes-v0.03.apk` será disponibilizado como artifact separado e, quando permitido, Release. Não há APK pré-compilado no ZIP de fontes.
-
-## Validação
-
-Foram validadas a integridade do ZIP e a estrutura local. Execução de `flutter analyze`, `flutter test` e `flutter build apk` permanece pendente no GitHub Actions.
+O GitHub Actions deve produzir `Uai-Vozes-v0.04.apk` separadamente do ZIP de fontes. O APK não foi compilado neste ambiente; análise e testes Flutter precisam ser executados pelo workflow.

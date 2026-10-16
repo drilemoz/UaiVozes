@@ -218,6 +218,12 @@ class _VoicesPageState extends State<VoicesPage> {
       child: ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 26), children: [
         Row(children: [
           Expanded(child: Text('Explorar vozes', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800))),
+          IconButton(
+            icon: Icon(favoritesOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              color: favoritesOnly ? theme.colorScheme.primary : null),
+            tooltip: favoritesOnly ? 'Mostrar todas as vozes' : 'Mostrar só favoritas',
+            isSelected: favoritesOnly,
+            onPressed: () => setState(() => favoritesOnly = !favoritesOnly)),
           IconButton(icon: const Icon(Icons.tune_rounded), tooltip: 'Filtrar vozes', onPressed: () => showModalBottomSheet(
               context: context, showDragHandle: true, isScrollControlled: true,
               builder: (ctx) => SafeArea(child: Padding(
@@ -255,23 +261,34 @@ class _VoicesPageState extends State<VoicesPage> {
           ),
         ),
         const SizedBox(height: 13),
-        Wrap(spacing: 8, runSpacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          DropdownButtonHideUnderline(child: DropdownButton<String>(
-            value: widget.model.language,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-            borderRadius: BorderRadius.circular(19),
-            items: languages.entries.map((e) => DropdownMenuItem(
-                value: e.key, child: Text(e.value))).toList(),
-            onChanged: (val) async {
-              if (val == null) return;
-              await widget.model.setLanguage(val);
-              await refresh();
-            },
-          )),
-          _chip('Minhas vozes', !rankingMode, () {setState(() => rankingMode = false); refresh();}),
-          _chip('Top 10', rankingMode, () {setState(() => rankingMode = true); refresh();}),
-          _chip('Favoritas', favoritesOnly, () => setState(() => favoritesOnly = !favoritesOnly)),
-        ]),
+        // Apenas um filtro de favoritas no topo, sem ocupar outra linha.
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            DropdownButtonHideUnderline(child: DropdownButton<String>(
+              value: widget.model.language,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              borderRadius: BorderRadius.circular(19),
+              items: languages.entries.map((e) => DropdownMenuItem(
+                  value: e.key, child: Text(e.value))).toList(),
+              onChanged: (val) async {
+                if (val == null) return;
+                await widget.model.setLanguage(val);
+                await refresh();
+              },
+            )),
+            const SizedBox(width: 9),
+            _chip('Minhas vozes', !rankingMode, () {
+              setState(() => rankingMode = false);
+              refresh();
+            }),
+            const SizedBox(width: 7),
+            _chip('Top 10', rankingMode, () {
+              setState(() => rankingMode = true);
+              refresh();
+            }),
+          ]),
+        ),
         if (category != 'all' || voiceStyle != 'all') Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(children: [
