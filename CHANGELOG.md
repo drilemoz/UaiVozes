@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.1.0-alpha.7+7 · 16/10/2026
+- Corrigida a falha do workflow #7: `validate_source.py` analisava todo o workspace após `flutter pub get`, rejeitando `.dart_tool` e o Android gerado apesar de não estarem no ZIP ou no Git.
+- Verificação de higiene agora consulta o índice Git no CI ou um ZIP explicitamente informado com `--archive`, protegendo contra distribuição de caches e chaves privadas sem bloquear arquivos temporários do compilador.
+- Corrigido teste de identidade que ainda exigia v0.05 e adicionado conjunto de três testes Python para prevenir a regressão.
+- Ajustado `.gitignore`: `/android/` ignora somente o Android gerado, preservando `scripts/android/MainActivity.kt` necessário para importar/exportar a chave API.
+- Versão, APK, artefato, tags, README, notas de release, Sobre e documentação sincronizados. Assinatura e applicationId preservados.
+
 ## 0.1.0-alpha.6+6 · 16/10/2026
 
 - **Estúdio:** bloqueio síncrono enquanto a caixa de confirmação está aberta e trava de TTS no `AppModel` para evitar requisições paralelas. Sem retentativa automática em falha incerta.

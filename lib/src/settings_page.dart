@@ -296,6 +296,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.7': [
+    'Corrigida verificação do workflow que rejeitava caches normais do Flutter.',
+    'Segurança de distribuição reforçada sem incluir chaves ou arquivos temporários.',
+    'Teste de identidade e validações automatizadas atualizados.',
+  ],
   '0.1.0-alpha.6': [
     'Bloqueio global de solicitações TTS duplicadas, inclusive durante a confirmação.',
     'Biblioteca com gravação atômica, recuperação de áudio e migração sem excluir o histórico.',

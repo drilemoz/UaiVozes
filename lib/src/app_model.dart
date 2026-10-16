@@ -13,8 +13,8 @@ import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.6';
-  static const versionCode = 6;
+  static const version = '0.1.0-alpha.7';
+  static const versionCode = 7;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),

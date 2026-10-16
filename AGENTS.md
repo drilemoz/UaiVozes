@@ -16,3 +16,8 @@
 
 - Assinatura release é obrigatória a partir da v0.06; sem os quatro Secrets de keystore, workflow deve falhar para não gerar APK que exige reinstalação. Não incluir keystore ou Secrets no ZIP.
 - Biblioteca: preservar migração da antiga preferência `library`, catálogo atômico e journals. Não apagar áudio após falhas de índice; testes de recuperação devem ser mantidos.
+
+- Higiene de distribuição: validar somente arquivos versionados no Git (`git ls-files`) ou entradas reais do ZIP (`--archive`), nunca o workspace gerado por `flutter pub get` ou por `prepare_android.sh`. A checagem de keystores privadas deve inspecionar fontes distribuídas, não a keystore temporária legítima do build.
+- Os testes `test/identity_test.dart` devem sempre acompanhar o versionamento, sem constantes hardcoded de releases antigas.
+
+- Não usar `android/` (sem barra inicial) no `.gitignore`: isso ocultaria `scripts/android/MainActivity.kt`; usar `/android/` para excluir só o Android gerado.

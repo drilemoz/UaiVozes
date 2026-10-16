@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Validação estrutural do Uai Vozes sem exigir SDK Flutter/Android."""
+import argparse
 import json
 import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from source_hygiene import distribution_paths, prohibited_paths
+
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0-alpha.6"
-CODE = 6
-APK = "Uai-Vozes-v0.06.apk"
+VERSION = "0.1.0-alpha.7"
+CODE = 7
+APK = "Uai-Vozes-v0.07.apk"
 PACKAGE = "com.drilemoz.uaivozes"
 
 def content(path):
@@ -20,7 +23,7 @@ def check(condition, description):
         raise AssertionError(description)
     print(f"OK: {description}")
 
-def main():
+def main(source_archive=None):
     pubspec = content("pubspec.yaml")
     check(re.search(r"^name: uaivozes$", pubspec, re.M) is not None, "pacote Dart")
     check(f"version: {VERSION}+{CODE}" in pubspec, "versão pubspec")
@@ -49,18 +52,29 @@ def main():
     check(label == "Uai Vozes", "nome no launcher")
     check("AudioCatalog" in main_dart and "tryBeginGeneration" in main_dart,
           "biblioteca robusta e trava de TTS")
-    check("# Uai Vozes v0.06" in content("RELEASE_NOTES.md"), "notas da release")
+    check(f"# Uai Vozes v0.{CODE:02d}" in content("RELEASE_NOTES.md"), "notas da release")
     check(f"## {VERSION}+{CODE}" in content("CHANGELOG.md"), "CHANGELOG atual")
     check(f"versionCode **{CODE}**" in content("docs/VERSIONING.md"), "guia de versionamento")
-    check(all(not any(part in f.parts for part in (".dart_tool", ".gradle", "build"))
-          for f in ROOT.rglob("*")), "sem caches compilados dentro do ZIP")
-    check(not list(ROOT.rglob("*.jks")) and not list(ROOT.rglob("*.p12")),
-          "sem keystore privada distribuída")
+    # No GitHub Actions, flutter pub get/flutter create criam .dart_tool/, android/
+    # e a keystore de release em tempo de execução. Inspecionar ROOT.rglob(*)
+    # rejeitaria esses arquivos legítimos apesar de não estarem versionados.
+    paths = distribution_paths(ROOT, source_archive)
+    if paths is None:
+        print("AVISO: sem Git neste diretório; passe --archive <ZIP> para verificar os arquivos distribuídos")
+    else:
+        check("scripts/android/MainActivity.kt" in paths, "ponte Kotlin nativa incluída na distribuição")
+        rejected = prohibited_paths(paths)
+        check(not rejected, "distribuição sem caches, Android gerado ou chaves privadas"
+              + (f": {', '.join(rejected[:5])}" if rejected else ""))
     print("VALIDAÇÃO ESTRUTURAL: OK")
 
 if __name__ == "__main__":
     try:
-        main()
-    except (AssertionError, ValueError, KeyError, ET.ParseError) as exc:
+        parser = argparse.ArgumentParser(description="Validação do Uai Vozes")
+        parser.add_argument('--archive', type=Path,
+                            help="ZIP de origem a inspecionar fora de um checkout Git")
+        args = parser.parse_args()
+        main(args.archive)
+    except (AssertionError, ValueError, KeyError, ET.ParseError, OSError) as exc:
         print(f"VALIDAÇÃO FALHOU: {exc}", file=sys.stderr)
         sys.exit(1)

@@ -3,7 +3,7 @@
   "platform": "android",
   "framework": "flutter",
   "packageName": "com.drilemoz.uaivozes",
-  "versionName": "0.1.0-alpha.6",
-  "versionCode": 6,
-  "apkFileName": "Uai-Vozes-v0.06.apk"
+  "versionName": "0.1.0-alpha.7",
+  "versionCode": 7,
+  "apkFileName": "Uai-Vozes-v0.07.apk"
 }

@@ -1,10 +1,10 @@
-# Uai Vozes v0.06 · 0.1.0-alpha.6+6 (versionCode 6)
+# Uai Vozes v0.07 · 0.1.0-alpha.7+7 (versionCode 7)
 
-- Trava compartilhada entre telas e confirmação para impedir duas gerações TTS simultâneas.
-- Salvamento de áudio mais resistente a interrupções: MP3 escrito antes do índice, journal de recuperação, catálogo atômico com backup e migração da biblioteca da v0.05.
-- Player com tratamento de falhas assíncronas; falha em abrir o áudio não oculta o MP3 já salvo.
-- Diagnóstico com persistência serializada, sem registrar chaves API ou textos enviados.
-- GitHub Actions recusa criar um release APK com assinatura temporária: os quatro Secrets são obrigatórios.
-- Testes novos de migração, recuperação, exclusão e bloqueio de geração; sem novas dependências Flutter.
+- Corrigido o falso positivo do validador do GitHub Actions #7, que confundia os caches legítimos do Flutter e o Android gerado com arquivos distribuídos.
+- Verificação segura dos arquivos realmente versionados ou presentes no ZIP, mantendo proteção contra inclusão de caches e keystores privadas.
+- Atualizado teste de identidade para acompanhar as versões atuais, sem referências estáticas à v0.05.
+- Corrigido `.gitignore` para incluir `scripts/android/MainActivity.kt` no repositório; antes a regra ampla `android/` também ignorava esse código-fonte nativo.
+- Acrescentados três testes Python de higiene da distribuição ao workflow, sem novas dependências Flutter.
+- Preservados nome Uai Vozes, identificador `com.drilemoz.uaivozes`, dados locais e assinatura obrigatória com os mesmos quatro Secrets.
 
-APK previsto: `Uai-Vozes-v0.06.apk` (artifact separado do ZIP, com checksum SHA-256). Build Android real ainda pendente.
+APK previsto: `Uai-Vozes-v0.07.apk` como artifact separado, com SHA-256. A compilação Flutter e os testes Android seguem pendentes da execução no GitHub Actions.

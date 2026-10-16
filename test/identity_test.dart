@@ -18,12 +18,15 @@ void main() {
     expect(identity['versionCode'], AppModel.versionCode);
     expect(manager['projectName'], identity['name']);
     expect(manager['versionCode'], identity['versionCode']);
-    expect(manager['apkFileName'], 'Uai-Vozes-v0.05.apk');
+    final apkName = "Uai-Vozes-v0.${AppModel.versionCode.toString().padLeft(2, '0')}.apk";
+    expect(manager['apkFileName'], apkName);
+    expect(identity['apkFileName'], apkName);
     expect(pubspec, contains('name: uaivozes'));
-    expect(pubspec, contains('version: 0.1.0-alpha.5+5'));
+    expect(pubspec, contains('version: ${AppModel.version}+${AppModel.versionCode}'));
     expect(manifest, contains('android:label="Uai Vozes"'));
     expect(manifest, contains('@android:drawable/ic_btn_speak_now'));
-    expect(workflow, contains('dist/Uai-Vozes-v0.05.apk'));
+    expect(workflow, contains('dist/$apkName'));
+    expect(workflow, contains('tag_name: v${AppModel.version}'));
     expect(releaseNotes.keys.first, AppModel.version);
   });
 }

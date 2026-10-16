@@ -3,7 +3,7 @@
 .pub-cache/
 .pub/
 build/
-android/
+/android/
 !.github/
 *.iml
 .idea/
@@ -14,3 +14,7 @@ android/
 *.keystore
 *.p12
 key.properties
+
+# caches Python usados na validacao local/CI
+__pycache__/
+*.pyc

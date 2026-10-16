@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.6+6
+# Validação da versão 0.1.0-alpha.7+7
 
 ## Causa do workflow anterior
 
@@ -49,3 +49,23 @@ Não há SDK Flutter ou Android no ambiente local; o resultado de `flutter analy
 - Workflow bloqueia release se faltar qualquer um dos quatro Secrets de assinatura, preservando o certificado nas versões subsequentes.
 - Testes adicionados em `test/audio_catalog_test.dart` e `test/generation_lock_test.dart`.
 - Validações possíveis neste ambiente: verificação do ZIP, leitura/parse estrutural de JSON/YAML/XML, `bash -n` e regras estáticas de identidade/versão. **Não há SDK Flutter/Android disponível aqui** para `flutter analyze`, `flutter test`, compilação ou instalação. Esses resultados permanecem pendentes do workflow `Gerar APK Uai Vozes`.
+
+## Correção do workflow #7 (alpha.7)
+
+O run 7 falhou na etapa `python3 tools/validate_source.py`, depois de `flutter pub get`.
+A expressão `ROOT.rglob("*")` inspecionava todo o diretório de trabalho e rejeitava
+`.dart_tool/`, embora essa pasta tivesse sido criada pelo Flutter e não fizesse parte da distribuição.
+A mesma lógica rejeitaria `android/app/release-key.jks`, produzida temporariamente
+pelo script de assinatura; portanto ambas as validações precisavam ser corrigidas.
+
+- `tools/source_hygiene.py`: valida caminhos presentes no **índice Git** durante o Actions; com `--archive`, valida entradas reais do ZIP e CRC.
+- `tools/test_source_hygiene.py`: verifica que arquivos gerados não bloqueiam o run, que keystores incluídas no ZIP são proibidas e que o índice Git rejeita material privado rastreado.
+- `test/identity_test.dart`: evita constantes antigas de versão/APK; obtém expectativas do `AppModel`.
+- O workflow roda `python3 -m unittest discover -s tools -p 'test_*.py' -v` e mantém `validate_source.py` após `flutter pub get`, para exercer a correção no mesmo contexto do erro.
+
+Validação reproduzível local: `python3 tools/validate_source.py --archive ../Uai-Vozes-v0.07-Fonte.zip` e `python3 -m unittest discover -s tools -p 'test_*.py' -v`.
+O SDK Flutter/Android não está disponível neste ambiente; `flutter analyze`, `flutter test`, `flutter build apk` e a assinatura real precisam ser verificados no GitHub Actions. **Não afirmar que o build do APK passou**.
+
+### Arquivo Kotlin nativo versionado
+
+A regra anterior `android/` de `.gitignore` também escondia `scripts/android/MainActivity.kt`. Foi substituída por `/android/`; o validador passa a exigir esse arquivo no índice Git/ZIP para garantir que a ponte nativa do seletor de documentos esteja disponível no CI.
