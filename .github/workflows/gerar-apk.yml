@@ -60,16 +60,16 @@ jobs:
       - name: Exportar APK fora do ZIP
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.19.apk
-          test -s dist/Uai-Vozes-v0.19.apk
-          sha256sum dist/Uai-Vozes-v0.19.apk > dist/Uai-Vozes-v0.19.apk.sha256
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.20.apk
+          test -s dist/Uai-Vozes-v0.20.apk
+          sha256sum dist/Uai-Vozes-v0.20.apk > dist/Uai-Vozes-v0.20.apk.sha256
       - name: APK para download (GitHub Manager / Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: Uai-Vozes-v0.19-apk
+          name: Uai-Vozes-v0.20-apk
           path: |
-            dist/Uai-Vozes-v0.19.apk
-            dist/Uai-Vozes-v0.19.apk.sha256
+            dist/Uai-Vozes-v0.20.apk
+            dist/Uai-Vozes-v0.20.apk.sha256
           if-no-files-found: error
           retention-days: 30
       - name: Publicar Release opcional
@@ -77,9 +77,9 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha.19
+          tag_name: v0.1.0-alpha.20
           name: Uai Vozes v0.19 (alpha.19)
           prerelease: true
           generate_release_notes: false
           body_path: RELEASE_NOTES.md
-          files: dist/Uai-Vozes-v0.19.apk
+          files: dist/Uai-Vozes-v0.20.apk

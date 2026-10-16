@@ -311,6 +311,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.20': [
+    'Corrigida a sintaxe do Explorador que bloqueava a análise Flutter no workflow v0.19.',
+    'Filtros e lista de vozes preservados; consultar vozes padrão agora é um botão independente.',
+    'Atualização preventiva dos testes, sem alterar chamadas ElevenLabs, assinatura ou dados locais.',
+  ],
   '0.1.0-alpha.19': [
     'Top 10 no plano Free explica a restrição da biblioteca e oferece acesso às vozes da conta.',
     'Filtro Na minha conta (possíveis) mostra candidatas sem inventar compatibilidade de geração.',

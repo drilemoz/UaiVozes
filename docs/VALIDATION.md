@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.19+19
+# Validação da versão 0.1.0-alpha.20+20
 
 - Caso reproduzido conceitualmente com o diagnóstico do usuário: `plano=free`, Top 10 público sem vozes com permissão Free; vozes da conta com `available_for_tiers` ausente não podem ser classificadas como compatíveis, porém podem ser exibidas como candidatas sem restrição explícita.
 - API: `/v2/voices` permite filtro `voice_type` e busca paginada, mas não filtro por assinatura. `GET /v1/user/subscription` informa tier; `GET /v1/voices/:voice_id` informa metadados que podem ser inconclusivos. Não foi realizada autenticação na conta nem TTS automático.
@@ -175,3 +175,11 @@ Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero iss
 - Verificar na UI que filtros de acesso compõem com favoritas, busca e paginação, exibem apenas resultados carregados, e que "Verificar acesso" usa GET (sem TTS), mantendo o estado indeterminado quando metadados faltam.
 - Confirmar que a assinatura consultada reavalia as categorias e que chave/idioma trocados impedem aplicar detalhes antigos.
 - Não há Flutter SDK Android local: análise, `flutter test`, build APK e execução em dispositivo precisam do workflow.
+
+## Correção alpha.20 (GitHub Actions workflow #19)
+
+- Logs de 16/10/2026: 22 testes Python aprovados e `tools/validate_source.py` aprovado; `flutter analyze` falhou com `expected_token` (810:9) e `missing_identifier`/`expected_token` (816:9), todos em `lib/src/voices_page.dart`. Flutter tests/Android build não foram executados.
+- Causa: coleção de Widgets ficou com botão auxiliar `if` inserido no meio de `else if (...) EmptyState(...) else ...visible.map(...)`.
+- Conserto: lista `...visible.map(...)` ocupa o `else` correspondente; botão opcional agora é um `if` independente após a lista.
+- Regressão local: `tools/test_voice_widget_condition_v020.py`, além dos testes anteriores.
+- Flutter SDK indisponível localmente; executar `flutter analyze`, `flutter test` e `flutter build apk` no próximo CI para validação completa.

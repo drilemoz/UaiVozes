@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.20+20 · 16/10/2026
+
+- Workflow v0.19: 22 testes Python e validação estrutural passaram, mas `flutter analyze` falhou com 3 erros Dart em `lib/src/voices_page.dart:810,816` (vírgula/encadeamento de `if/else` em coleção de Widgets).
+- Reorganizado `if` principal (sem chave, erro, estado vazio ou lista de cartões) e reposicionado o botão auxiliar de vozes padrão como condição independente, preservando funcionalidades da v0.19.
+- Adicionado teste Python de regressão estrutural para a ordem dos elementos, atualizado versionCode 20, workflow/artifact/APK, documentação e novidades. Chaves/Secrets, assinatura, applicationId, textos e MP3s preservados.
+- `flutter analyze`, `flutter test` e APK v0.20 ainda pendentes do CI; não houve compilação neste ambiente.
+
+
 ## 0.1.0-alpha.19+19 · 16/10/2026
 
 - Analisados captura do Explorador Top 10 e 27 eventos reais de diagnóstico: plano `free`, dois detalhes de vozes próprias inconclusivos e geração HTTP 402 sem código de motivo. Zero resultados em "Compatíveis" no Top 10 Free era consequência da regra de acesso à Voice Library; ausência de tiers não comprova bloqueio das vozes próprias.

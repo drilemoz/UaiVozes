@@ -2,11 +2,18 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.19+19** · APK pretendido: **Uai-Vozes-v0.19.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.20+20** · APK pretendido: **Uai-Vozes-v0.20.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Correção da alpha.20 (workflow #19)
+
+- Workflow `Gerar APK Uai Vozes` v0.19: 22 testes Python e validação estrutural aprovados; `flutter analyze` falhou com 3 erros de sintaxe em `lib/src/voices_page.dart:810` e `:816` antes do `flutter test` e do APK.
+- Corrigido o bloco da lista com `if / else if / else ...visible.map(...)` e movido o botão de consultar vozes padrão para fora dessa cadeia. Mantidas as condições de ausência de chave, erro da API, lista vazia, vozes carregadas e carregamento.
+- Teste estático de regressão protege a ordem dos blocos e a separação entre lista e botão. Nenhuma chamada de API, TTS, assinatura ou persistência alterada.
+- A análise Dart/Flutter, os testes Flutter e a compilação APK v0.20 precisam ser executados pelo GitHub Actions; nenhum APK foi gerado localmente.
 
 ## Novidades da alpha.19 (Top 10 Free e vozes da conta)
 
@@ -145,12 +152,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.19.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.20.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.19:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.20:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

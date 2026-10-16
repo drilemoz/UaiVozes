@@ -807,12 +807,6 @@ class _VoicesPageState extends State<VoicesPage> {
                 },
               child: Text(accessFilter == VoiceAccessFilter.compatible
                   ? 'Mostrar vozes da minha conta' : 'Limpar filtros')))
-        if (!rankingMode && !loading && visible.isEmpty &&
-            accessFilter == VoiceAccessFilter.accountCandidates &&
-            voiceType != 'default' && widget.model.key.isNotEmpty)
-          TextButton.icon(onPressed: () => showAccountCandidates(defaultOnly: true),
-            icon: const Icon(Icons.record_voice_over_outlined),
-            label: const Text('Consultar vozes padrão da minha conta')),
         else ...visible.map((voice) => Padding(padding: const EdgeInsets.only(bottom: 10),
           child: UaiVozesCard(child: Row(children: [
             CircleAvatar(radius: 25,
@@ -879,6 +873,12 @@ class _VoicesPageState extends State<VoicesPage> {
             }, icon: Icon(widget.model.favoriteIds.contains(voice.id)
                 ? Icons.favorite_rounded : Icons.favorite_border_rounded)),
           ])))),
+        if (!rankingMode && !loading && visible.isEmpty &&
+            accessFilter == VoiceAccessFilter.accountCandidates &&
+            voiceType != 'default' && widget.model.key.isNotEmpty)
+          TextButton.icon(onPressed: () => showAccountCandidates(defaultOnly: true),
+            icon: const Icon(Icons.record_voice_over_outlined),
+            label: const Text('Consultar vozes padrão da minha conta')),
         if (loading) const Padding(padding: EdgeInsets.all(18),
           child: Center(child: CircularProgressIndicator())),
         if (!rankingMode && nextToken != null && !loading)

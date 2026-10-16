@@ -45,9 +45,9 @@ class VoiceUx18Tests(unittest.TestCase):
         self.assertIn("title: const Text('Diagnóstico local')",main)
         self.assertNotIn("SectionTitle('Diagnóstico local')",about)
     def test_version_integrity(self):
-        self.assertIn('0.1.0-alpha.19+19',read('pubspec.yaml'))
+        self.assertIn('0.1.0-alpha.20+20',read('pubspec.yaml'))
         for path in ['github-manager.json','app_identity.json']:
-            data=json.loads(read(path));self.assertEqual(data['versionCode'],19)
+            data=json.loads(read(path));self.assertEqual(data['versionCode'],20)
             self.assertEqual(data['packageName'] if path=='app_identity.json' else data['projectName'],
                 'com.drilemoz.uaivozes' if path=='app_identity.json' else 'Uai Vozes')
 
