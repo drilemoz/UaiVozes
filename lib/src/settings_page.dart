@@ -311,6 +311,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.19': [
+    'Top 10 no plano Free explica a restrição da biblioteca e oferece acesso às vozes da conta.',
+    'Filtro Na minha conta (possíveis) mostra candidatas sem inventar compatibilidade de geração.',
+    'Vozes padrão podem ser consultadas sem TTS; filtro estrito continua exigindo metadados.',
+  ],
   '0.1.0-alpha.18': [
     'Explorador compacto: filtros reunidos no painel da API e idioma 🇧🇷 Português.',
     'Acesso por plano com ajuda contextual e checagem manual de até dez vozes sem gerar áudio.',

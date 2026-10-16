@@ -5,7 +5,9 @@ import 'models.dart';
 /// créditos suficientes, acesso ao modelo nem garantia de síntese.
 enum VoiceAccess { compatible, restricted, currentTierNotListed, unknown }
 
-enum VoiceAccessFilter { all, compatible, restricted, unknown }
+/// 'accountCandidates' são vozes da conta sem restrição comprovada; não
+/// significa que a conta pode gerar TTS, nem que existe saldo suficiente.
+enum VoiceAccessFilter { all, accountCandidates, compatible, restricted, unknown }
 
 class VoiceAccessInfo {
   const VoiceAccessInfo(this.state, this.label, this.details, {this.specialRate = false});
@@ -18,9 +20,13 @@ class VoiceAccessInfo {
   bool get isCompatible => state == VoiceAccess.compatible;
 }
 
-bool matchesVoiceAccessFilter(VoiceAccessFilter filter, VoiceAccessInfo info) =>
+bool matchesVoiceAccessFilter(VoiceAccessFilter filter, VoiceAccessInfo info,
+    {bool ownedCatalog = false}) =>
     switch (filter) {
       VoiceAccessFilter.all => true,
+      // /v2/voices lista vozes associadas à conta. A ausência de restrição
+      // EXPLÍCITA as torna apenas candidatas, não compatíveis confirmadas.
+      VoiceAccessFilter.accountCandidates => ownedCatalog && !info.isRestricted,
       VoiceAccessFilter.compatible => info.isCompatible,
       VoiceAccessFilter.restricted => info.isRestricted,
       VoiceAccessFilter.unknown => info.state == VoiceAccess.unknown,

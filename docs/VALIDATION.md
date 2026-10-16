@@ -1,3 +1,9 @@
+# Validação da versão 0.1.0-alpha.19+19
+
+- Caso reproduzido conceitualmente com o diagnóstico do usuário: `plano=free`, Top 10 público sem vozes com permissão Free; vozes da conta com `available_for_tiers` ausente não podem ser classificadas como compatíveis, porém podem ser exibidas como candidatas sem restrição explícita.
+- API: `/v2/voices` permite filtro `voice_type` e busca paginada, mas não filtro por assinatura. `GET /v1/user/subscription` informa tier; `GET /v1/voices/:voice_id` informa metadados que podem ser inconclusivos. Não foi realizada autenticação na conta nem TTS automático.
+- Testes Dart do classificador e Python do roteamento Top10→Minhas vozes, proteção de catálogo e sem TTS. Compilação Flutter e APK dependem do próximo workflow; não declarar resultados não observados.
+
 # Validação da versão 0.1.0-alpha.18+18
 
 - Atualização da navegação e dos filtros API em `voices_page.dart` / `eleven_api.dart`, menu de exclusão confirmada, GET manual em lote até 10 vozes, e controle de estados inconclusivos sem confundir desconhecido com compatível.

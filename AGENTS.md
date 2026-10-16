@@ -35,3 +35,5 @@
 - Exclusão de voz: somente após confirmação do usuário e resposta `status: ok` da API DELETE; não apagar MP3 local, nem repetir DELETE automaticamente. Bloquear padrão/legada; remover seleção/favorito somente depois de sucesso.
 - Diagnóstico: exportar o conteúdo UTF-8 completo por SAF (`exportDiagnostic`) e tratar cancelamento sem marcar sucesso. Nenhum dado privado no log/arquivo além de campos seguros. Copiar/Exportar/Excluir organizados na mesma faixa.
 - Sobre só histórico/doação; acesso Diagnóstico em Ajustes junto de O que mudou?.
+
+- Alpha.19: separar filtro estrito `Compatíveis com meu plano` de `Na minha conta (possíveis)`. `/v2/voices` é catálogo da conta, não garantia de TTS. O filtro de candidatas só pode funcionar em Minhas vozes e deve excluir bloqueios explicitamente confirmados. No Top 10 Free, explicar indisponibilidade da biblioteca pela API, oferecer Minhas vozes sem preservar filtros incompatíveis. HTTP 402 sem motivo continua ambíguo. Não fazer POST/TTS para verificar voz, nem afirmar gratuidade na ausência de `available_for_tiers`.

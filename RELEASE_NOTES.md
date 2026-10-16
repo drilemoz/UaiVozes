@@ -1,10 +1,9 @@
-# Uai Vozes v0.18 (alpha.18)
+# Uai Vozes v0.19 (alpha.19)
 
-Explorador de Vozes compacto, remoção confirmada e exportação completa do Diagnóstico local.
+Filtro de acesso mais útil para plano Free, sem confundir voz visível com permissão de gerar.
 
-- Filtros da API reunidos em uma folha inferior para Minhas vozes e Top 10; indicador 🇧🇷 Português, ajudas `?` e informações sem texto repetido. Há filtros de tipo, finalidade, gênero, idade e sotaque conforme a origem, além da compatibilidade local.
-- O filtro Compatíveis com meu plano não é garantido pela ElevenLabs: apenas metadados explícitos confirmam o tier. Ação manual para até 10 GETs de detalhes, sem teste TTS ou reenvio de geração.
-- Minhas vozes inclui menu ⋮ > Remover da conta. Confirmação obrigatória antes da exclusão; vozes padrão/legadas não removíveis; áudios gravados continuam na Biblioteca.
-- Diagnóstico movido para Ajustes, ao lado de O que mudou?. Copiar, Exportar TXT e Excluir na mesma linha. Exportação grava o texto real por SAF, mediante destino escolhido pelo usuário.
-- Correções de código, documentação e metadados sincronizados em `0.1.0-alpha.18+18`, APK de nome separado `Uai-Vozes-v0.18.apk` no GitHub Actions.
-- Sem mudança de Secrets, senha, chaves, keystore, `applicationId` ou dados locais. Compilação Android e testes Flutter completos ainda pendentes do workflow.
+- O Top 10 é biblioteca compartilhada; no plano Free não há acesso à geração dessa biblioteca via API. Quando o filtro estrito não encontra vozes, há atalho para **Minhas vozes**.
+- Novo filtro **Na minha conta (possíveis)** exibe vozes retornadas pela API para sua conta, omitindo apenas as com restrição explícita. A etiqueta de cada voz continua informando **Acesso a confirmar** quando os metadados não bastam.
+- O filtro **Compatíveis com meu plano** permanece confiável e estrito: exige `available_for_tiers`. Se ficar vazio, não interpreta ausência do campo como bloqueio; oferece caminho para as vozes da conta.
+- Quando necessário, botão consulta vozes padrão usando somente GET. Nenhuma geração TTS, teste pago automático ou nova dependência. HTTP 402 continua sinalizando cobrança/créditos a verificar, não prova bloqueio de voz.
+- Identificador `com.drilemoz.uaivozes`, assinatura, quatro Secrets, dados locais e MP3s preservados. APK `Uai-Vozes-v0.19.apk` configurado para GitHub Actions; compilação Flutter/Android pendente.

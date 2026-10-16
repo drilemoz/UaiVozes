@@ -2,11 +2,18 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.18+18** · APK pretendido: **Uai-Vozes-v0.18.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.19+19** · APK pretendido: **Uai-Vozes-v0.19.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.19 (Top 10 Free e vozes da conta)
+
+- Após relatório real de plano Free com 27 eventos no Diagnóstico, o filtro estrito não exibe vozes porque a API não enviou `available_for_tiers` e a Voice Library pública bloqueia uso via API no Free. HTTP 402 sem `detail.code` continua inconclusivo: pode indicar cobrança/créditos, não prova voz bloqueada.
+- O filtro **Na minha conta (possíveis)** lista vozes já retornadas por `GET /v2/voices` que não tenham restrições explícitas. Inclui acesso desconhecido com etiqueta **Acesso a confirmar**, mas **não** as chama de confirmadamente compatíveis/grátis e não faz TTS de verificação.
+- Quando **Compatíveis com meu plano** fica vazio, a tela orienta e permite ir diretamente às vozes da conta. No Top 10 com Free, avisa sobre restrição da biblioteca; na conta, se não houver candidatas, sugere consultar vozes padrão usando `voice_type=default`.
+- Filtros aplicados localmente às páginas carregadas. A verificação opcional de até dez detalhes continua manual, por GET, sem retentativas nem gastos de geração. Não altera biblioteca, textos, keystore, quatro Secrets ou identificador do Android.
 
 ## Novidades da alpha.18 (Explorador compacto e diagnóstico)
 
@@ -138,12 +145,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.18.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.19.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.18:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.19:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

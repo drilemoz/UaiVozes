@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.19+19 · 16/10/2026
+
+- Analisados captura do Explorador Top 10 e 27 eventos reais de diagnóstico: plano `free`, dois detalhes de vozes próprias inconclusivos e geração HTTP 402 sem código de motivo. Zero resultados em "Compatíveis" no Top 10 Free era consequência da regra de acesso à Voice Library; ausência de tiers não comprova bloqueio das vozes próprias.
+- Incluído filtro **Na minha conta (possíveis)** para mostrar vozes de `GET /v2/voices` não bloqueadas explicitamente. Um resultado com acesso `unknown` permanece "Acesso a confirmar"; o filtro **Compatíveis com meu plano** permanece estrito (`available_for_tiers`).
+- Estado vazio de compatibilidade oferece navegação direta para Minhas vozes sem herdar filtros de biblioteca, e uma opção para consultar vozes padrão pelo `voice_type=default`. Explicações de ajuda/Top 10 diferenciadas, sem TTS nem checagens pagas.
+- Testes Dart/Python de compatibilidade, origem de catálogo e ausência de pedidos de geração; documentação/metadados/CI sincronizados. Flutter analyze/test e APK precisam do Actions.
+
+
 ## 0.1.0-alpha.18+18 · 16/10/2026
 
 - Explorador de vozes compactado: faixa única de idioma, Minhas vozes, Top 10, filtro e ajuda contextual. 🇧🇷 Português substitui “Português (Brasil)” no seletor; filtros de compatibilidade, origem/categoria, finalidade, estilo, gênero, idade e sotaque ficam em modal; filtros reais são enviados apenas aos endpoints que os aceitam.

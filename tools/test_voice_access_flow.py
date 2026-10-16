@@ -10,7 +10,7 @@ class VoiceAccessFlowTests(unittest.TestCase):
         for name in ('Compatíveis com meu plano', 'Restritas', 'A confirmar'):
             self.assertIn(name, ui)
         self.assertIn('allLoaded.where(matches).toList()', ui)
-        self.assertIn('matchesVoiceAccessFilter(accessFilter, accessFor(voice))', ui)
+        self.assertIn('matchesVoiceAccessFilter(accessFilter, accessFor(voice),', ui)
         self.assertIn('more()', ui)
 
     def test_consulta_manual_isolada_e_sem_geracao(self):

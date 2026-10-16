@@ -24,6 +24,7 @@ const sharedVoiceCategories = <String, String>{
 
 String accessFilterTitle(VoiceAccessFilter filter) => switch (filter) {
   VoiceAccessFilter.all => 'Todas',
+  VoiceAccessFilter.accountCandidates => 'Na minha conta (possíveis)',
   VoiceAccessFilter.compatible => 'Compatíveis com meu plano',
   VoiceAccessFilter.restricted => 'Restritas',
   VoiceAccessFilter.unknown => 'A confirmar',
@@ -468,13 +469,17 @@ class _VoicesPageState extends State<VoicesPage> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Compatibilidade com meu plano', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          const Text('A API não oferece filtro direto por assinatura. Uma voz só aparece como '
-            'compatível quando os detalhes listam expressamente seu plano em available_for_tiers. '
-            'Sem esse campo, a classificação é A confirmar, mesmo em Minhas vozes. '
-            'Acesso confirmado não garante saldo, modelo habilitado nem síntese gratuita.'),
+          const Text('A API não oferece filtro direto por assinatura. '
+            '“Compatíveis com meu plano” exige o campo available_for_tiers '
+            'contendo seu plano. Na aba Minhas, “Na minha conta (possíveis)” '
+            'mostra vozes listadas pela sua conta sem restrição explícita. '
+            'Elas podem continuar como “Acesso a confirmar”. '
+            'Essa lista não garante saldo, modelo habilitado ou geração.'),
           const SizedBox(height: 14),
-          const Text('Use “Verificar vozes carregadas” para consultar até 10 detalhes por toque. '
-            'A operação usa GET, não gera áudio e não faz novas requisições TTS.'),
+          const Text('No plano Free, a Voice Library pública (Top 10) não '
+            'está disponível para geração pela API. Prefira Minhas vozes '
+            'ou use o filtro de vozes padrão. Verificar detalhes faz somente '
+            'GET, sem gastar créditos de geração.'),
           const SizedBox(height: 14),
           Align(alignment: Alignment.centerRight, child: FilledButton(
             onPressed: () => Navigator.pop(ctx), child: const Text('Entendi'))),
@@ -536,7 +541,8 @@ class _VoicesPageState extends State<VoicesPage> {
 
   bool matches(Voice voice) {
     if (favoritesOnly && !widget.model.favoriteIds.contains(voice.id)) return false;
-    if (!matchesVoiceAccessFilter(accessFilter, accessFor(voice))) return false;
+    if (!matchesVoiceAccessFilter(accessFilter, accessFor(voice),
+        ownedCatalog: !rankingMode)) return false;
     if (rankingMode) {
       final query = searchController.text.trim().toLowerCase();
       if (query.isNotEmpty &&
@@ -567,6 +573,24 @@ class _VoicesPageState extends State<VoicesPage> {
     ]);
   }
 
+  /// Alternativa honesta quando a ElevenLabs não devolve available_for_tiers.
+  /// Troca de catálogo sem disparar TTS nem adivinhar acesso às vozes.
+  void showAccountCandidates({bool defaultOnly = false}) {
+    searchDebounce?.cancel();
+    searchController.clear();
+    setState(() {
+      rankingMode = false;
+      accessFilter = VoiceAccessFilter.accountCandidates;
+      category = 'all'; voiceStyle = 'all'; gender = 'all';
+      age = 'all'; accent = 'all'; sharedCategory = 'all';
+      voiceType = defaultOnly ? 'default' : 'all';
+      favoritesOnly = false;
+      verifiedVoices.clear();
+      bulkCheckedVoices.clear();
+    });
+    unawaited(refresh());
+  }
+
   Future<void> showFilters() async {
     final initialApiFilters = '$category|$voiceStyle|$gender|$age|$accent|$sharedCategory|$voiceType';
     await showModalBottomSheet<void>(
@@ -584,7 +608,8 @@ class _VoicesPageState extends State<VoicesPage> {
               style: Theme.of(ctx).textTheme.bodySmall),
             _filterRow('Compatibilidade', {
               for (final filter in VoiceAccessFilter.values)
-                filter.name: accessFilterTitle(filter),
+                if (!rankingMode || filter != VoiceAccessFilter.accountCandidates)
+                  filter.name: accessFilterTitle(filter),
             }, accessFilter.name,
               (v) => accessFilter = VoiceAccessFilter.values.firstWhere((e) => e.name == v), updateSheet),
             if (!rankingMode) _filterRow('Tipo de voz na conta',
@@ -668,7 +693,13 @@ class _VoicesPageState extends State<VoicesPage> {
             }),
             const SizedBox(width: 5),
             _chip('Top 10', rankingMode, () {
-              if (!rankingMode) {setState(() {rankingMode = true; voiceType = 'all'; verifiedVoices.clear(); bulkCheckedVoices.clear();}); unawaited(refresh());}
+              if (!rankingMode) {setState(() {
+                rankingMode = true; voiceType = 'all';
+                if (accessFilter == VoiceAccessFilter.accountCandidates) {
+                  accessFilter = VoiceAccessFilter.all;
+                }
+                verifiedVoices.clear(); bulkCheckedVoices.clear();
+              }); unawaited(refresh());}
             }),
             IconButton(icon: Icon(Icons.tune_rounded,
                 color: filterActive ? theme.colorScheme.primary : null),
@@ -702,16 +733,28 @@ class _VoicesPageState extends State<VoicesPage> {
                 unawaited(widget.model.refreshUsage()),
               child: Text(widget.model.refreshingUsage ? 'Consultando…' : 'Consultar plano')),
           ])),
+        if (rankingMode && accessFilter == VoiceAccessFilter.compatible &&
+            widget.model.subscription?.tier.trim().toLowerCase() == 'free')
+          Padding(padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(children: [
+              Expanded(child: Text('Top 10 é biblioteca pública: indisponível na API do plano Free.',
+                style: theme.textTheme.bodySmall)),
+              TextButton(onPressed: () => showAccountCandidates(),
+                child: const Text('Minhas vozes')),
+            ])),
         if (accessFilter != VoiceAccessFilter.all)
           Padding(padding: const EdgeInsets.only(bottom: 4),
             child: Row(children: [
-              Expanded(child: Text('${visible.length}/${allLoaded.length} vozes carregadas',
+              Expanded(child: Text(accessFilter == VoiceAccessFilter.accountCandidates
+                ? '${visible.length} vozes da conta sem bloqueio explícito · geração não confirmada'
+                : '${visible.length}/${allLoaded.length} vozes carregadas',
                 style: theme.textTheme.bodySmall)),
             ])),
         if (!rankingMode && widget.model.key.isNotEmpty &&
             ownVoices.any((v) => !bulkCheckedVoices.contains(v.id) &&
               accessFor(verifiedVoices[v.id] ?? v).state == VoiceAccess.unknown) &&
-            (accessFilter == VoiceAccessFilter.compatible ||
+            (accessFilter == VoiceAccessFilter.accountCandidates ||
+              accessFilter == VoiceAccessFilter.compatible ||
               accessFilter == VoiceAccessFilter.unknown))
           Align(alignment: Alignment.centerLeft, child: TextButton.icon(
             onPressed: verifyingLoaded || loading ? null : verifyLoadedAccess,
@@ -732,25 +775,44 @@ class _VoicesPageState extends State<VoicesPage> {
             action: OutlinedButton(onPressed: () => refresh(force: true),
               child: const Text('Tentar novamente')))
         else if (visible.isEmpty && !loading)
-          EmptyState(icon: Icons.mic_off_outlined, title: accessFilter == VoiceAccessFilter.compatible
+          EmptyState(icon: Icons.mic_off_outlined,
+            title: accessFilter == VoiceAccessFilter.compatible
               ? 'Sem compatibilidade confirmada' : 'Nenhuma voz encontrada',
             description: loadingMore ? 'Buscando...' :
-                accessFilter == VoiceAccessFilter.compatible
-                    ? 'Nenhuma compatibilidade comprovada nas páginas carregadas. '
-                      'Use “A confirmar” e consulte os detalhes de uma voz por vez.'
-                    : accessFilter == VoiceAccessFilter.unknown
-                      ? 'Nenhuma voz pendente de confirmação nas páginas carregadas.'
-                      : accessFilter == VoiceAccessFilter.restricted
-                        ? 'Nenhuma restrição identificada nas páginas carregadas.'
-                        : rankingMode ? 'Sem vozes neste Top 10. A biblioteca pode exigir outro plano.'
-                          : 'A API não retornou vozes com estes filtros nesta página.',
-            action: OutlinedButton(onPressed: () {
-              searchDebounce?.cancel(); searchController.clear();
-              setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
-                age = 'all'; accent = 'all'; voiceType = 'all'; sharedCategory = 'all'; favoritesOnly = false;
-                accessFilter = VoiceAccessFilter.all;});
-              unawaited(refresh(force: true));
-            }, child: const Text('Limpar filtros')))
+                rankingMode && accessFilter == VoiceAccessFilter.compatible &&
+                  (widget.model.subscription?.tier.toLowerCase() == 'free')
+                    ? 'Seu plano Free não permite usar a biblioteca pública (Top 10) pela API. '
+                      'Abra as vozes da conta, que podem ser utilizadas conforme permissões, modelo e saldo.'
+                : accessFilter == VoiceAccessFilter.compatible
+                    ? 'A API não confirmou seu plano nos metadados destas vozes. '
+                      'Isso não prova bloqueio. Veja vozes da sua conta com acesso ainda não confirmado.'
+                : accessFilter == VoiceAccessFilter.accountCandidates
+                    ? 'Nenhuma voz da conta sem restrição explícita neste idioma ou filtro. '
+                      'Experimente limpar idioma ou procurar vozes padrão.'
+                : accessFilter == VoiceAccessFilter.unknown
+                    ? 'Nenhuma voz pendente de confirmação nas páginas carregadas.'
+                : accessFilter == VoiceAccessFilter.restricted
+                    ? 'Nenhuma restrição identificada nas páginas carregadas.'
+                : rankingMode ? 'Sem vozes neste Top 10. A biblioteca pode exigir outro plano.'
+                  : 'A API não retornou vozes com estes filtros nesta página.',
+            action: OutlinedButton(
+              onPressed: accessFilter == VoiceAccessFilter.compatible
+                ? () => showAccountCandidates()
+                : () {
+                  searchDebounce?.cancel(); searchController.clear();
+                  setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
+                    age = 'all'; accent = 'all'; voiceType = 'all'; sharedCategory = 'all'; favoritesOnly = false;
+                    accessFilter = VoiceAccessFilter.all;});
+                  unawaited(refresh(force: true));
+                },
+              child: Text(accessFilter == VoiceAccessFilter.compatible
+                  ? 'Mostrar vozes da minha conta' : 'Limpar filtros')))
+        if (!rankingMode && !loading && visible.isEmpty &&
+            accessFilter == VoiceAccessFilter.accountCandidates &&
+            voiceType != 'default' && widget.model.key.isNotEmpty)
+          TextButton.icon(onPressed: () => showAccountCandidates(defaultOnly: true),
+            icon: const Icon(Icons.record_voice_over_outlined),
+            label: const Text('Consultar vozes padrão da minha conta')),
         else ...visible.map((voice) => Padding(padding: const EdgeInsets.only(bottom: 10),
           child: UaiVozesCard(child: Row(children: [
             CircleAvatar(radius: 25,
