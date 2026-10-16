@@ -7,6 +7,7 @@
 - Não inventar top 10 de vozes; sempre consultar o endpoint oficial ou mostrar falta de permissão/dados.
 - Não repetir chamada TTS automaticamente, pois pode consumir créditos duplicados.
 - Compilar APK separado do ZIP de código no artifact GitHub Actions e/ou Release.
+- Cobrir regressões de análise Flutter com testes de código-fonte quando possível; não declarar o lint aprovado até executar `flutter analyze`.
 - Validar flutter analyze, flutter test e build Android no GitHub Actions antes de afirmar APK testado.
 
 - Diagnósticos: não registrar chaves, cabeçalhos, corpo HTTP, prompts/textos e caminhos externos. Limitar histórico a 100 eventos com exportação controlada pelo usuário.

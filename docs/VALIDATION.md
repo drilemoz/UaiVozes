@@ -1,4 +1,22 @@
-# Validação da versão 0.1.0-alpha.12+12
+# Validação da versão 0.1.0-alpha.13+13
+
+## Diagnóstico do workflow #12, 16/10/2026
+
+- Os seis testes Python (`unittest`) passaram.
+- `python3 tools/validate_source.py` aprovou a identidade, os metadados, os Secrets no workflow e a higiene da distribuição.
+- A etapa `flutter analyze` (Flutter 3.47.7) acusou `unnecessary_import` em `lib/src/studio_page.dart:2` para `import 'dart:typed_data';` e encerrou com código 1.
+- `flutter test`, `flutter build apk` e publicação do artefato não foram executados nesse run. Nenhum APK foi compilado nesse log.
+
+## Correção alpha.13
+
+- Removido apenas o import redundante de `dart:typed_data`, mantendo `package:flutter/services.dart` que já fornece `Uint8List`.
+- Criado teste Python `tools/test_flutter_imports.py` para evitar a reintrodução simultânea no Estúdio.
+- Versão, APK/artifact e notas sincronizados. Não muda contrato de API, persistência, pacote ou assinatura.
+- Os resultados de testes executados localmente nesta revisão devem ser vistos junto à entrega; o próximo run do Actions é necessário para validar `flutter analyze`, `flutter test` e build ARM64.
+
+---
+
+# Histórico de validação até a alpha.12
 
 ## Causa do workflow anterior
 

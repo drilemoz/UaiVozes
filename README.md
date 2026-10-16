@@ -2,11 +2,17 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.12+12** · APK pretendido: **Uai-Vozes-v0.12.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.13+13** · APK pretendido: **Uai-Vozes-v0.13.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.13 (correção de análise Flutter)
+
+- O workflow #12 parou no `flutter analyze` porque `dart:typed_data` foi importado desnecessariamente em `studio_page.dart`; essa importação foi removida, sem alterar o comportamento do Estúdio.
+- Adicionado teste de regressão Python e sincronizados os metadados, notas e nomes do APK/artifact.
+- Preservados identificador Android, keystore e os quatro Secrets já configurados. Testes Flutter, APK e instalação continuam pendentes do próximo GitHub Actions.
 
 ## Novidades da alpha.12 (vozes com restrição e editor de textos)
 
@@ -92,12 +98,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.12.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.13.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.12:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.13:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

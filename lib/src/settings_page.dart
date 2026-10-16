@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.13': [
+    'Corrigida a análise de código do Flutter: importação redundante removida do Estúdio.',
+    'Compatibilidade com Flutter 3.47.7 mantida, sem alterar geração de áudio ou armazenamento.',
+    'Testes de regressão e metadados de versão atualizados; assinatura existente preservada.',
+  ],
   '0.1.0-alpha.12': [
     'Vozes exibem restrição ao plano Free quando a API confirma; dados ausentes aparecem como acesso a confirmar.',
     'Tarifas especiais recebem aviso, sem inventar multiplicadores de créditos.',

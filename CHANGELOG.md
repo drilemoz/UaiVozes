@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.13+13 · 16/10/2026
+
+- Corrigido o bloqueio do workflow #12 em `flutter analyze` causado por `unnecessary_import` em `lib/src/studio_page.dart:2` (importação redundante de `dart:typed_data`).
+- Mantido `package:flutter/services.dart`, que fornece o símbolo necessário; nenhuma alteração na lógica do Estúdio, TTS, biblioteca ou persistência.
+- Adicionado teste Python preventivo para a regressão de imports no Estúdio.
+- Sincronizados versão, notas, APK externo, artifact, metadados e instruções de publicação, sem tocar em credenciais ou assinatura Android.
+- Os seis testes Python do run #12 e a validação de estrutura passaram, mas o workflow foi interrompido antes de `flutter test` e `flutter build apk`. Esses passos ainda exigem novo CI.
+
 ## 0.1.0-alpha.12+12 · 16/10/2026
 
 - Explorador: estados conservadores de acesso de vozes com dados `available_for_tiers` e `free_users_allowed` retornados pela API. Sem informação suficiente, mostra “Acesso a confirmar”.
@@ -95,4 +103,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.13+13. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.14+14. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

@@ -1,12 +1,11 @@
-# Uai Vozes v0.12 · 0.1.0-alpha.12+12 (versionCode 12)
+# Uai Vozes v0.13 · 0.1.0-alpha.13+13 (versionCode 13)
 
-- Explorador de Vozes: indica “Exige plano pago” apenas com metadados explícitos da ElevenLabs e “Acesso a confirmar” em casos incertos; tarifas especiais recebem aviso sem assumir multiplicador.
-- Evita selecionar ou gerar com vozes explicitamente indisponíveis para o plano atual, reduzindo tentativas com risco de consumo.
-- Estúdio: importar TXT, salvar e recuperar rascunhos nomeados; dividir textos longos em partes de até 5.000 caracteres para geração manual controlada.
-- Testes de elegibilidade, dados incompletos, limite de rascunhos, integridade Unicode e validações anteriores preservadas.
+- Correção do workflow #12: removida importação redundante de `dart:typed_data` no Estúdio, que fazia o `flutter analyze` falhar por `unnecessary_import` com Flutter 3.47.7.
+- Mantidos editor de textos, catálogo de vozes, controle de créditos, geração ElevenLabs e biblioteca sem alteração comportamental.
+- Incluído teste Python de regressão para o import e sincronizados nomes, versão, workflow e notas.
 
-**Assinatura Android:** inalterada, mesmos Secrets obrigatórios. APK previsto `Uai-Vozes-v0.12.apk`, distribuído fora do ZIP do código.
+**Assinatura Android:** usar exatamente os quatro Secrets existentes `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD`. Não há nova chave nem mudança do identificador `com.drilemoz.uaivozes`.
 
-**Limitação:** voz com selo “Acesso a confirmar” não é necessariamente gratuita; prévia não garante autorização. Em planos Free, a biblioteca pública via API pode ser inacessível. Não há download ou geração automática de partes longas.
+**Distribuição:** código-fonte em ZIP separado; após compilação confirmada pelo GitHub Actions, o APK será publicado como `Uai-Vozes-v0.13.apk` no artifact `Uai-Vozes-v0.13-apk`.
 
-**Validação pendente:** Flutter analyze, testes Flutter e compilação do APK no GitHub Actions.
+**Validação:** o run #12 aprovou seis testes Python e a verificação estrutural, mas parou no analisador antes dos testes Flutter e do APK. A análise Flutter corrigida, os testes Flutter, a compilação e a instalação Android ainda precisam de confirmação no próximo run.
