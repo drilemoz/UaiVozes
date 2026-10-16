@@ -119,6 +119,58 @@ void main() {
     api.dispose();
   });
 
+  test('HTTP 402 lê detail.code atual e não repete POST', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'chave_privada', client: MockClient((request) async {
+      calls++;
+      return http.Response(jsonEncode({'detail': {
+        'type': 'payment_required', 'code': 'insufficient_credits',
+        'status': 'quota_exceeded',
+        'message': 'não registrar chave_privada ou texto sensível',
+      }}), 402, headers: {'content-type': 'application/json; charset=utf-8'});
+    }));
+    try {
+      await api.synthesize(voiceId: 'voz', text: 'texto sensível');
+      fail('Esperada falha HTTP 402');
+    } on ElevenApiException catch (error) {
+      expect(error.statusCode, 402);
+      expect(error.reason, 'insufficient_credits'); // code atual tem precedência
+      expect(error.toString(), isNot(contains('chave_privada')));
+      expect(error.toString(), isNot(contains('texto sensível')));
+    }
+    expect(calls, 1);
+    api.dispose();
+  });
+
+  test('HTTP 402 sem detalhe válido conserva status sem inventar motivo', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'segredo', client: MockClient((request) async {
+      calls++;
+      return http.Response(jsonEncode({'detail': {'code': 'token_usuario_privado',
+        'message': 'mensagem confidencial'}}), 402);
+    }));
+    await expectLater(api.synthesize(voiceId: 'voz', text: 'teste'),
+      throwsA(isA<ElevenApiException>()
+        .having((e) => e.statusCode, 'HTTP', 402)
+        .having((e) => e.reason, 'motivo', isNull)));
+    expect(calls, 1);
+    api.dispose();
+  });
+
+  test('HTTP 402 com restrição explícita de assinatura mantém código', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'segredo', client: MockClient((request) async {
+      calls++;
+      return http.Response(jsonEncode({'detail': {'code': 'subscription_required',
+        'type': 'payment_required', 'message': 'plano restrito'}}), 402);
+    }));
+    await expectLater(api.synthesize(voiceId: 'voz', text: 'teste'),
+      throwsA(isA<ElevenApiException>()
+        .having((e) => e.reason, 'motivo', 'subscription_required')));
+    expect(calls, 1);
+    api.dispose();
+  });
+
   test('TTS aceita MP3 com cabeçalho ID3', () async {
     final api = ElevenApi(() async => 'chave', client: MockClient((request) async {
       expect(request.url.path, '/v1/text-to-speech/voz');

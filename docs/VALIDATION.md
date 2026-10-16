@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.14+14
+# Validação da versão 0.1.0-alpha.15+15
 
 ## Evidências do workflow #13, 16/10/2026
 
@@ -141,3 +141,10 @@ Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero iss
 - Novos testes Flutter: voz restrita/desconhecida, rascunhos locais, Unicode e divisão em partes de <=5000 caracteres.
 - Importação TXT amplia a ponte Kotlin SAF com limite de 250 KiB, sem permissão de armazenamento amplo.
 - Testes Flutter e compilação Android ainda requerem CI e aparelho real.
+
+## Alpha.15: correção de diagnóstico HTTP 402
+
+- Confirmar com `flutter test` que códigos `detail.code` conhecidos são reconhecidos e `detail.status` legado continua compatível.
+- Garantir que status 402 sem código não afirme voz bloqueada; `insufficient_credits` só quando explicitamente informado.
+- Verificar que nenhuma resposta de erro causa segunda requisição POST TTS e que mensagens privadas não aparecem no diagnóstico.
+- `flutter analyze`, `flutter test`, `flutter build apk` e testes no aparelho ainda pendentes nesta distribuição local.

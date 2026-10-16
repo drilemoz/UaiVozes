@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.15+15 · 16/10/2026
+
+- Relatório real do usuário `GERACAO_API | HTTP 402` revelou classificação imprecisa na interface; HTTP 402 normalmente representa pagamento requerido ou saldo insuficiente, não confirma bloqueio da voz.
+- Atualizado `_fail` para preferir `detail.code` da documentação atual da ElevenLabs, com fallback ao `detail.status` legado, e aceitar apenas motivos explicitamente listados. Adicionado suporte a `insufficient_credits`, `subscription_required`, `feature_not_available`, `voice_access_denied`, `model_access_denied` e `insufficient_permissions`.
+- Mensagens de TTS distinguem créditos insuficientes confirmados de HTTP 402 genérico, assinatura, e HTTP 403. Modal permite consultar créditos e consumo por GET, sem gerar áudio novamente.
+- Sete testes Flutter adicionais garantem classificação, compatibilidade e privacidade; nenhum POST TTS automático adicional, logs sensíveis, dependência ou migração.
+- Atualizados README, CHANGELOG, AGENTS, release, workflow, versionamento, metadados e novidades. `flutter analyze`, `flutter test` e compilação do APK alpha.15 ainda pendem de CI.
+
 ## 0.1.0-alpha.14+14 · 16/10/2026
 
 - Workflow #13: `flutter analyze` aprovado (Flutter 3.47.7); `flutter test` concluiu com **60 testes aprovados e 1 falha**, em `test/api_test.dart:63`, antes da compilação APK.

@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.15': [
+    'HTTP 402 agora orienta verificar créditos ou cobrança, sem presumir bloqueio de voz.',
+    'Códigos de erro da ElevenLabs são reconhecidos com segurança, sem copiar mensagens privadas.',
+    'Tela de falha permite consultar consumo sem repetir a geração de áudio.',
+  ],
   '0.1.0-alpha.14': [
     'Corrigida a leitura de códigos HTTP 422 com resposta em diferentes codificações.',
     'Mensagens privadas da API continuam ocultas e não há nova tentativa automática de geração.',

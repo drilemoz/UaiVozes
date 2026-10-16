@@ -21,10 +21,18 @@ String friendlyError(Object error) {
     if (error.reason == 'free_users_not_allowed') {
       return 'esta voz não está disponível para usuários do plano Free';
     }
+    if (error.reason == 'insufficient_credits') {
+      return 'créditos insuficientes informados pela ElevenLabs';
+    }
+    if (error.reason == 'subscription_required' ||
+        error.reason == 'feature_not_available') {
+      return 'a operação exige plano ou recurso não disponível na assinatura';
+    }
     return switch (error.statusCode) {
       400 => 'formato ou parâmetros não aceitos pela ElevenLabs',
       401 => 'chave inválida ou sem permissão',
-      402 || 403 => 'recurso indisponível para seu plano ou chave',
+      402 => 'créditos insuficientes ou pagamento exigido pela ElevenLabs',
+      403 => 'permissão ou acesso ao recurso não concedido à chave',
       404 => 'voz ou modelo não encontrado ou sem acesso',
       422 => 'voz, modelo ou solicitação não aceitos pela API',
       429 => 'limite de requisições ou créditos atingidos',
@@ -153,12 +161,20 @@ class ElevenApi {
         decoded = jsonDecode(response.body);
       }
       if (decoded is Map && decoded['detail'] is Map) {
-        final raw = decoded['detail']['status'];
+        final detail = decoded['detail'] as Map;
+        // A API atual usa detail.code; detail.status é legado.
+        // Apenas valores conhecidos podem entrar em diagnóstico ou relatório.
         const permitted = <String>{
           'voice_not_found', 'model_not_found', 'quota_exceeded',
           'invalid_api_key', 'missing_permissions', 'rate_limit_exceeded',
           'voice_limit_reached', 'free_users_not_allowed',
+          'insufficient_credits', 'subscription_required',
+          'feature_not_available', 'voice_access_denied',
+          'model_access_denied', 'insufficient_permissions',
         };
+        final code = detail['code'];
+        final legacy = detail['status'];
+        final raw = code is String && code.isNotEmpty ? code : legacy;
         if (raw is String && permitted.contains(raw)) reason = raw;
       }
     } catch (_) {
@@ -170,7 +186,8 @@ class ElevenApi {
     final message = switch (code) {
       400 => 'A solicitação não foi aceita. Verifique a voz e o modelo.',
       401 => 'Chave API inválida ou sem permissão para este recurso.',
-      402 || 403 => 'O plano ou a chave API não permite esta operação.',
+      402 => 'A ElevenLabs exige pagamento ou informa créditos insuficientes.',
+      403 => 'A chave não tem acesso a esta voz ou função.',
       404 => 'A voz ou o modelo pode não estar disponível na sua conta.',
       422 => 'A ElevenLabs rejeitou a combinação de voz, modelo ou texto.',
       429 => 'Limite da conta ou da API atingido.',

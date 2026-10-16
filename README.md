@@ -2,11 +2,19 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.14+14** · APK pretendido: **Uai-Vozes-v0.14.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.15+15** · APK pretendido: **Uai-Vozes-v0.15.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.15 (diagnóstico de HTTP 402)
+
+- O relatório real `GERACAO_API | HTTP 402` era classificado genericamente como bloqueio de voz/chave. Segundo a documentação atual da ElevenLabs, HTTP 402 aponta créditos insuficientes ou pagamento exigido, sem comprovar que a voz está bloqueada.
+- Mensagem de geração atualizada: diferencia HTTP 402 sem motivo explícito, `insufficient_credits` confirmado, restrição de assinatura e HTTP 403 de acesso, com indicação de onde conferir o consumo e botão local para consultá-lo.
+- `_fail` agora prioriza `detail.code` (API atual), com fallback `detail.status` legado, e só aceita motivos previamente permitidos. Nenhuma mensagem privada da API, texto nem chave é copiada para diagnóstico.
+- Novos testes com respostas HTTP 402 simuladas, uma única requisição TTS e proteção de dados; a v0.15 ainda precisa de CI/Flutter e APK.
+- Nenhuma alteração em assinatura, base de dados, dependências ou chave API. Esta correção não adiciona créditos nem remove restrições reais impostas pela ElevenLabs.
 
 ## Novidades da alpha.14 (correção de resposta HTTP 422)
 
@@ -105,12 +113,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.14.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.15.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.14:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.15:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

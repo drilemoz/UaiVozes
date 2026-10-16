@@ -25,6 +25,43 @@ void main() {
     expect(failure.report, isNot(contains('confidencial')));
   });
 
+  test('HTTP 402 sem motivo não afirma que a voz foi bloqueada', () {
+    const error = ElevenApiException('texto privado', 402);
+    final failure = GenerationFailure.classify(error,
+      audioReceived: false, audioSaved: false);
+    expect(failure.httpStatus, 402);
+    expect(failure.message, contains('motivo exato não foi confirmado'));
+    expect(failure.message, isNot(contains('esta voz')));
+    expect(failure.nextAction, contains('Créditos e consumo'));
+    expect(failure.report, isNot(contains('texto privado')));
+  });
+
+  test('HTTP 402 com insufficient_credits aponta crédito confirmado', () {
+    const error = ElevenApiException('mensagem confidencial', 402, 'insufficient_credits');
+    final failure = GenerationFailure.classify(error,
+      audioReceived: false, audioSaved: false);
+    expect(failure.message, contains('créditos insuficientes'));
+    expect(failure.diagnostic, contains('insufficient_credits'));
+    expect(failure.report, isNot(contains('confidencial')));
+  });
+
+  test('subscription_required distingue plano de saldo', () {
+    const error = ElevenApiException('segredo', 402, 'subscription_required');
+    final failure = GenerationFailure.classify(error,
+      audioReceived: false, audioSaved: false);
+    expect(failure.message, contains('assinatura'));
+    expect(failure.nextAction, contains('plano'));
+    expect(failure.report, isNot(contains('segredo')));
+  });
+
+  test('403 voice_access_denied trata acesso da voz', () {
+    const error = ElevenApiException('privado', 403, 'voice_access_denied');
+    final failure = GenerationFailure.classify(error,
+      audioReceived: false, audioSaved: false);
+    expect(failure.message, contains('acesso a esta voz'));
+    expect(failure.nextAction, contains('vozes'));
+  });
+
   test('status 404 dá orientação para seleção de voz', () {
     const error = ElevenApiException('conteúdo privado', 404, 'voice_not_found');
     final result = GenerationFailure.classify(error,

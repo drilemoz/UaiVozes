@@ -302,6 +302,19 @@ class _StudioPageState extends State<StudioPage> {
           ],
           const SizedBox(height: 10),
           Text(failure.nextAction),
+          if (failure.httpStatus == 402) ...[
+            const SizedBox(height: 12),
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(
+              icon: const Icon(Icons.account_balance_wallet_outlined),
+              label: const Text('Consultar créditos e consumo'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                if (!mounted) return;
+                unawaited(widget.model.refreshUsage());
+                unawaited(showUsageSheet(context, widget.model));
+              },
+            )),
+          ],
           const SizedBox(height: 18),
           Row(children: [
             OutlinedButton.icon(onPressed: () async {
