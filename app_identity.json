@@ -1,9 +1,9 @@
 {
-  "name": "Eleven",
+  "name": "Uai, Vozes",
   "platform": "android",
   "framework": "flutter",
-  "packageName": "com.drilemoz.eleven",
-  "versionName": "0.1.0-alpha.1",
-  "versionCode": 1,
-  "apkFileName": "Eleven-v0.01.apk"
+  "packageName": "com.drilemoz.uaivozes",
+  "versionName": "0.1.0-alpha.2",
+  "versionCode": 2,
+  "apkFileName": "Uai-Vozes-v0.02.apk"
 }

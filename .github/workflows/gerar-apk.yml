@@ -1,4 +1,4 @@
-name: Gerar APK Eleven
+name: Gerar APK Uai, Vozes
 on:
   push:
     branches: [main, master]
@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       publicar_release:
-        description: 'Publicar o APK numa Release (opcional)'
+        description: 'Publicar APK direto em Releases (padrão: sim)'
         required: false
-        default: false
+        default: true
         type: boolean
 permissions:
   contents: write
@@ -29,6 +29,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'  # mesma versão que revelou o erro nos logs
           cache: true
       - name: Gerar Android nativo e configurar assinatura
         env:
@@ -48,13 +49,13 @@ jobs:
       - name: Exportar APK fora do ZIP
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/Eleven-v0.01.apk
-          test -s dist/Eleven-v0.01.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.02.apk
+          test -s dist/Uai-Vozes-v0.02.apk
       - name: APK para download (GitHub Manager / Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: Eleven-v0.01-apk
-          path: dist/Eleven-v0.01.apk
+          name: Uai-Vozes-v0.02-apk
+          path: dist/Uai-Vozes-v0.02.apk
           if-no-files-found: error
           retention-days: 30
       - name: Publicar Release opcional
@@ -62,9 +63,9 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha.1
-          name: Eleven v0.01 (alpha.1)
+          tag_name: v0.1.0-alpha.2
+          name: Uai, Vozes v0.02 (alpha.2)
           prerelease: true
           generate_release_notes: false
           body_path: RELEASE_NOTES.md
-          files: dist/Eleven-v0.01.apk
+          files: dist/Uai-Vozes-v0.02.apk

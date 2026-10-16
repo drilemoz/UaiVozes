@@ -305,7 +305,7 @@ class _VoicesPageState extends State<VoicesPage> {
                   child: const Text('Limpar filtros')))
         else ...visible.map((voice) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: ElevenCard(child: Row(children: [
+          child: UaiVozesCard(child: Row(children: [
             CircleAvatar(radius: 25,
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
               child: Icon(Icons.mic_none_rounded, color: theme.colorScheme.onSurfaceVariant)),

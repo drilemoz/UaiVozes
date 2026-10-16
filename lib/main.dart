@@ -12,21 +12,21 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final model = AppModel();
   await model.load();
-  runApp(ElevenApp(model: model));
+  runApp(UaiVozesApp(model: model));
 }
 
-class ElevenApp extends StatelessWidget {
-  const ElevenApp({super.key, required this.model});
+class UaiVozesApp extends StatelessWidget {
+  const UaiVozesApp({super.key, required this.model});
   final AppModel model;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: model,
     builder: (ctx, _) => MaterialApp(
-      title: 'Eleven',
+      title: 'Uai, Vozes',
       debugShowCheckedModeBanner: false,
-      theme: elevenTheme(Brightness.light),
-      darkTheme: elevenTheme(Brightness.dark),
+      theme: uaiVozesTheme(Brightness.light),
+      darkTheme: uaiVozesTheme(Brightness.dark),
       themeMode: model.themeMode,
       locale: const Locale('pt', 'BR'),
       home: MainShell(model: model),

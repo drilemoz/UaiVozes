@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 const violet = Color(0xFF8063D9);
 const mint = Color(0xFF75E2D1);
 
-ThemeData elevenTheme(Brightness brightness) {
+ThemeData uaiVozesTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final base = ThemeData(
     brightness: brightness,
@@ -62,8 +62,8 @@ ThemeData elevenTheme(Brightness brightness) {
   );
 }
 
-class ElevenCard extends StatelessWidget {
-  const ElevenCard({super.key, required this.child, this.padding = const EdgeInsets.all(18)});
+class UaiVozesCard extends StatelessWidget {
+  const UaiVozesCard({super.key, required this.child, this.padding = const EdgeInsets.all(18)});
   final Widget child;
   final EdgeInsetsGeometry padding;
   @override

@@ -139,7 +139,7 @@ class _StudioPageState extends State<StudioPage> {
           ),
           const SizedBox(height: 10),
           const SectionTitle('Voz selecionada'),
-          ElevenCard(
+          UaiVozesCard(
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: widget.openVoices,
@@ -159,7 +159,7 @@ class _StudioPageState extends State<StudioPage> {
             ),
           ),
           const SizedBox(height: 16),
-          ElevenCard(child: Row(children: [
+          UaiVozesCard(child: Row(children: [
             const Icon(Icons.language_rounded),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -183,7 +183,7 @@ class _StudioPageState extends State<StudioPage> {
           if (lastAudio != null) ...[
             const SizedBox(height: 22),
             const SectionTitle('Resultado'),
-            ElevenCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Icon(Icons.library_music_rounded),
                 const SizedBox(width: 10),

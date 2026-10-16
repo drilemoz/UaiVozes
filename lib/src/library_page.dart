@@ -147,7 +147,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   : 'Experimente buscar outro nome ou trecho de texto.')
         else ...items.map((item) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: ElevenCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child: UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               CircleAvatar(backgroundColor: theme.colorScheme.primaryContainer,
                   child: const Icon(Icons.music_note_rounded)),

@@ -1,12 +1,15 @@
-# Estado de validação da alpha.1
+# Validação da versão 0.1.0-alpha.2+2
 
-Validações **executadas no ambiente de geração**:
+## Causa do workflow anterior
 
-- YAML do pubspec/workflow, JSONs e XMLs analisados sem erro.
-- `bash -n scripts/prepare_android.sh` passou.
-- Verificação léxica estática de equilíbrio de parênteses, colchetes e chaves de todos os arquivos Dart passou (não substitui compilação).
-- ZIP de distribuição deve ser verificado por integridade CRC e presença de arquivos importantes.
+O workflow `Gerar APK Eleven` #1 concluiu a instalação do Flutter SDK 3.47.7 e `flutter pub get`, mas `flutter analyze` falhou com código 1 devido a seis ocorrências `deprecated_member_use` em `lib/src/settings_page.dart`, relativas a `RadioListTile.groupValue` / `onChanged` (linhas 153,154,160,161,167,168). O build e o APK não chegaram a ser executados.
 
-**Não executados neste ambiente:** `flutter pub get`, `flutter analyze`, `flutter test`, `flutter build apk`, instalação Android, acesso autenticado à ElevenLabs, teste de voz real e qualidade do layout no aparelho. Flutter SDK/Android SDK estão ausentes e o ambiente não resolve os servidores de download.
+## Correção
 
-**Próxima validação real:** GitHub Actions `Gerar APK Eleven` executa Flutter stable, testes e compilação. Sem resultado verde do workflow, não afirmar que o APK compila. Se houver erro, corrigir com base nos logs e incrementar versão para 0.1.0-alpha.2+2.
+Os três `RadioListTile<ThemeMode>` ficam sob `RadioGroup<ThemeMode>` com `groupValue` e `onChanged` apenas no ancestral. Com Flutter >=3.35, este é o padrão suportado oficialmente. O workflow fixa Flutter 3.47.7 para reduzir variações entre compilações.
+
+Também foram alterados o identificador Android (`com.drilemoz.uaivozes`), o pacote Flutter (`uaivozes`), os nomes exibidos, as notas, o workflow, o ícone de launcher nativo do Android e os metadados de versão.
+
+## Pendências
+
+Não há SDK Flutter ou Android no ambiente local; o resultado de `flutter analyze`, `flutter test`, `flutter build apk`, instalação e acesso à API precisa ser verificado pelo próximo run do workflow. Não declarar APK testado antes disso.

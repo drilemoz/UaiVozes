@@ -1,12 +1,12 @@
-# Eleven v0.01 · 0.1.0-alpha.1 (versionCode 1)
+# Uai, Vozes v0.02 · 0.1.0-alpha.2 (versionCode 2)
 
-Primeira versão do estúdio Flutter ElevenLabs.
+- Novo nome visível: **Uai, Vozes**.
+- Novo pacote Android `com.drilemoz.uaivozes` e pacote Dart `uaivozes`.
+- Ícone de microfone do próprio Android no launcher (`@android:drawable/ic_btn_speak_now`).
+- Correção do erro do build GitHub Actions #1: substituídos seis usos obsoletos de `RadioListTile.groupValue` / `RadioListTile.onChanged` por `RadioGroup`.
+- Mantidos conversão de texto pela API ElevenLabs, catálogo de vozes, biblioteca offline, temas e Pix.
+- APK ARM64 gerado como `Uai-Vozes-v0.02.apk`, fora do ZIP do código-fonte, após aprovação do workflow.
 
-- Texto para voz com ElevenLabs, saída MP3 e biblioteca local offline.
-- Consulta de vozes, filtros por idioma/categoria, favoritas e prévias quando disponíveis.
-- Top 10 real por uso anual via Voice Library (requer autorização/plano compatível).
-- Chave API no armazenamento seguro, com colar/copiar/mostrar/ocultar/testar.
-- Tema branco, preto AMOLED e sistema; wizard e janela de novidades.
-- Seção Sobre com histórico e doação Pix.
+**Atenção:** o identificador mudou; esta compilação instala como aplicativo independente do antigo Eleven, sem migrar dados ou chave API.
 
-**Limitações:** Requer internet e conta ElevenLabs para gerar fala. As APIs de catálogo público podem não estar disponíveis no plano gratuito. A assinatura de APK no GitHub Actions necessita de quatro Secrets para permanecer estável entre compilações.
+**Validação:** análise local estática, YAML/JSON/XML e ZIP; compilação Flutter/Android real fica pendente de GitHub Actions.

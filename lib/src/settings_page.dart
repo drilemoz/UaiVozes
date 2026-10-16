@@ -100,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 8),
         Text('Personalização, segurança e informações.', style: theme.textTheme.bodyMedium),
         header(context, 'Conexão ElevenLabs'),
-        ElevenCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [
             Icon(Icons.key_rounded), SizedBox(width: 10),
             Text('Chave pessoal da API', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -145,31 +145,33 @@ class _SettingsPageState extends State<SettingsPage> {
               style: theme.textTheme.bodySmall),
         ])),
         header(context, 'Aparência'),
-        ElevenCard(child: Column(children: [
+        UaiVozesCard(child: RadioGroup<ThemeMode>(
+          groupValue: widget.model.themeMode,
+          onChanged: (value) {
+            if (value != null) widget.model.setTheme(value);
+          },
+          child: Column(children: [
           RadioListTile<ThemeMode>(
             contentPadding: EdgeInsets.zero, title: const Text('Branco'),
             subtitle: const Text('Fundo claro e superfícies limpas'),
             secondary: const Icon(Icons.light_mode_outlined),
-            value: ThemeMode.light, groupValue: widget.model.themeMode,
-            onChanged: (v) { if (v != null) widget.model.setTheme(v); },
+            value: ThemeMode.light,
           ),
           RadioListTile<ThemeMode>(
             contentPadding: EdgeInsets.zero, title: const Text('Preto AMOLED'),
             subtitle: const Text('Preto real #000000, sem cinza lavado'),
             secondary: const Icon(Icons.dark_mode_outlined),
-            value: ThemeMode.dark, groupValue: widget.model.themeMode,
-            onChanged: (v) { if (v != null) widget.model.setTheme(v); },
+            value: ThemeMode.dark,
           ),
           RadioListTile<ThemeMode>(
             contentPadding: EdgeInsets.zero, title: const Text('Sistema'),
             subtitle: const Text('Segue o tema do Android'),
             secondary: const Icon(Icons.settings_suggest_outlined),
-            value: ThemeMode.system, groupValue: widget.model.themeMode,
-            onChanged: (v) { if (v != null) widget.model.setTheme(v); },
+            value: ThemeMode.system,
           ),
-        ])),
+        ]))),
         header(context, 'Aplicativo'),
-        ElevenCard(child: Column(children: [
+        UaiVozesCard(child: Column(children: [
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.auto_awesome_rounded),
             title: const Text('O que mudou?'), subtitle: const Text('Novidades da versão instalada'),
             trailing: const Icon(Icons.chevron_right_rounded), onTap: widget.showChanges),
@@ -179,7 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: const Icon(Icons.chevron_right_rounded), onTap: widget.showWizard),
           const Divider(),
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('Sobre o Eleven'), subtitle: const Text('Versão, histórico e doação Pix'),
+            title: const Text('Sobre o Uai, Vozes'), subtitle: const Text('Versão, histórico e doação Pix'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (ctx) => AboutPage(model: widget.model, showChanges: widget.showChanges))),
@@ -191,6 +193,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.2': [
+    'Novo nome Uai, Vozes e identificador Android com.drilemoz.uaivozes.',
+    'Corrigida análise do Flutter: seletores de tema migrados para RadioGroup.',
+    'Ícone do launcher usa o microfone oficial do Android, sem imagem extra.',
+  ],
   '0.1.0-alpha.1': [
     'Primeira versão do Estúdio, com geração MP3 e salvamento local.',
     'Explorador de vozes e ranking real por idioma conforme permissões da API.',
@@ -242,21 +249,21 @@ class AboutPage extends StatelessWidget {
     final theme = Theme.of(context);
     final lastThree = releaseNotes.keys.take(3).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Sobre o Eleven')),
+      appBar: AppBar(title: const Text('Sobre o Uai, Vozes')),
       body: SafeArea(child: ListView(padding: const EdgeInsets.all(18), children: [
-        ElevenCard(child: Column(children: [
+        UaiVozesCard(child: Column(children: [
           CircleAvatar(radius: 35, backgroundColor: theme.colorScheme.primaryContainer,
             child: const Icon(Icons.graphic_eq_rounded, size: 35)),
           const SizedBox(height: 12),
-          Text('Eleven', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text('Uai, Vozes', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
           Text('Versão ${AppModel.version} • code ${AppModel.versionCode}'),
           const SizedBox(height: 9),
-          const Text('Estúdio de áudio ElevenLabs desenvolvido em Flutter.', textAlign: TextAlign.center),
+          const Text('Uai, Vozes: estúdio de áudio com tecnologia ElevenLabs, desenvolvido em Flutter.', textAlign: TextAlign.center),
         ])),
         const SectionTitle('Últimas três alterações'),
         ...lastThree.map((version) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: ElevenCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child: UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(version, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             ...(releaseNotes[version] ?? []).map((note) => Padding(
@@ -268,7 +275,7 @@ class AboutPage extends StatelessWidget {
           ])),
         )),
         const SectionTitle('Apoie o desenvolvimento'),
-        ElevenCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [Icon(Icons.volunteer_activism_outlined), SizedBox(width: 10),
             Expanded(child: Text('Doação voluntária via Pix', style: TextStyle(fontWeight: FontWeight.bold)))]),
           const SizedBox(height: 11),

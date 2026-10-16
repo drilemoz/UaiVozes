@@ -1,4 +1,4 @@
-# Instruções do projeto Eleven
+# Instruções do projeto Uai, Vozes
 
 - Stack Flutter Android, português do Brasil, dependências mínimas, foco em telas leves e baixo consumo.
 - Não expor chaves API em código, logs, arquivos versionados ou testes.

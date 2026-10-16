@@ -11,8 +11,8 @@ import 'eleven_api.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.1';
-  static const versionCode = 1;
+  static const version = '0.1.0-alpha.2';
+  static const versionCode = 2;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -127,7 +127,7 @@ class AppModel extends ChangeNotifier {
     await dir.create(recursive: true);
     final now = DateTime.now();
     final id = now.microsecondsSinceEpoch.toString();
-    final path = '${dir.path}/eleven_$id.mp3';
+    final path = '${dir.path}/uaivozes_$id.mp3';
     await File(path).writeAsBytes(audio, flush: true);
     final title = text.trim().replaceAll(RegExp(r'\s+'), ' ');
     final item = AudioRecord(

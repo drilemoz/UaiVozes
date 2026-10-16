@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eleven/src/models.dart';
+import 'package:uaivozes/src/models.dart';
 
 void main() {
   test('Voz da conta possui metadados', () {

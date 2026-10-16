@@ -8,12 +8,15 @@ fi
 if [[ ! -f android/app/build.gradle.kts ]]; then
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  flutter create --no-pub --platforms=android --project-name=eleven --org=com.drilemoz "$tmp/eleven"
-  cp -a "$tmp/eleven/android" ./android
+  flutter create --no-pub --platforms=android --project-name=uaivozes --org=com.drilemoz "$tmp/uaivozes"
+  cp -a "$tmp/uaivozes/android" ./android
 fi
-mkdir -p android/app/src/main/res/drawable
+# Evita artefatos Android gerados anteriormente com a identidade antiga.
+if ! grep -Eq 'applicationId[[:space:]]*=[[:space:]]*"com.drilemoz.uaivozes"' android/app/build.gradle.kts; then
+  echo 'ERRO: applicationId não é com.drilemoz.uaivozes. Exclua android/ gerado e execute novamente.' >&2
+  exit 1
+fi
 cp scripts/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-cp assets/android/ic_eleven.xml android/app/src/main/res/drawable/ic_eleven.xml
 # O scaffold Flutter define minSdk/versionCode no Gradle a partir do pubspec.
 # Assinatura de produção opcional via Secrets; nunca persistir keystore no ZIP.
 if [[ -f android/app/build.gradle.kts && -n "${KEYSTORE_BASE64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then

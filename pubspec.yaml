@@ -1,6 +1,6 @@
-name: eleven
-version: 0.1.0-alpha.1+1
-description: Eleven - estudio de voz ElevenLabs, leve e offline para biblioteca.
+name: uaivozes
+version: 0.1.0-alpha.2+2
+description: Uai, Vozes - estúdio leve de texto para fala com a API ElevenLabs.
 publish_to: none
 environment:
   sdk: '>=3.5.0 <4.0.0'

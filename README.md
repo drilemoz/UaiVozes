@@ -1,8 +1,12 @@
-# Eleven 🎙️
+# Uai, Vozes 🎙️
 
-Aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades e preto AMOLED real.
+Uai, Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades e preto AMOLED real.
 
-Versão: **0.1.0-alpha.1+1** · APK pretendido: **Eleven-v0.01.apk** · Pacote Android: `com.drilemoz.eleven`.
+Versão: **0.1.0-alpha.2+2** · APK pretendido: **Uai-Vozes-v0.02.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+
+Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
+
+**ATENÇÃO:** o identificador Android mudou; este aplicativo é instalado separadamente do antigo Eleven. Os dados da instalação antiga não são migrados.
 
 ## Funcionalidades
 
@@ -25,10 +29,10 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Eleven-v0.01.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.02.apk
 ```
 
-Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Eleven**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
+Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai, Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
 **Assinatura:** sem os quatro Secrets opcionais o template Flutter usa assinatura de desenvolvimento. Para atualizações instaláveis sobre versões anteriores, providencie keystore estável e secreta; veja `docs/GITHUB_MANAGER.md`.
 
