@@ -2,11 +2,19 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.8+8** · APK pretendido: **Uai-Vozes-v0.08.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.9+9** · APK pretendido: **Uai-Vozes-v0.09.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.9 (central de créditos)
+
+- Histórico local de até 60 gerações com horário, caracteres, modelo e estimativa base, sem guardar prompts, voz ou API key nesse histórico. A contagem mensal pré-existente é preservada; o histórico detalhado começa na alpha.9.
+- Aviso opcional no Estúdio e na consulta de consumo quando o uso oficial alcançar 50%, 80% ou 95% do limite. Controlável em Configurações, sem notificações em segundo plano.
+- Estimativa base de aproximadamente um crédito por caractere para o modelo Multilingual v2, sujeita a multiplicadores de vozes e plano. Outros modelos sem tarifa confirmada não recebem estimativa inventada.
+- Proteção para que dados de assinatura ou usuário consultados com a chave anterior não apareçam após troca de chave.
+- Novos testes `credit_ledger_test.dart` e versão sequencial sincronizada. APK exige os mesmos quatro Secrets.
 
 ## Novidades da alpha.8 (correção do workflow #8)
 
@@ -68,12 +76,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.08.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.09.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.08:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.09:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 
@@ -93,7 +101,7 @@ Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar 
 
 ## Consumo/Créditos
 
-A API de assinatura retorna `character_count`, `character_limit` e, quando disponível, o horário de renovação. Esses dados são exibidos literalmente como contagem/limite do ciclo de faturamento, que não é necessariamente o mês calendário. Os créditos cobrados podem variar por modelo. O texto ainda não gerado fornece apenas uma aproximação pelo número de caracteres e não representa gasto real. O indicador de uso local passa a contabilizar caracteres de gerações bem-sucedidas a partir desta versão, separado por mês calendário. Ele não recupera uso anterior nem de outros apps.
+A API de assinatura retorna `character_count`, `character_limit` e, quando disponível, o horário de renovação. Esses dados são exibidos literalmente como contagem/limite do ciclo de faturamento, que não é necessariamente o mês calendário. Os créditos cobrados podem variar por modelo. O texto ainda não gerado fornece apenas uma aproximação pelo número de caracteres e não representa gasto real. O indicador de uso local contabiliza caracteres de gerações bem-sucedidas desde a alpha.4, e o histórico detalhado começa na alpha.9, separado por mês calendário. Ele não recupera uso anterior nem de outros apps.
 
 - https://elevenlabs.io/docs/api-reference/user/get
 - https://elevenlabs.io/docs/api-reference/user/subscription/get

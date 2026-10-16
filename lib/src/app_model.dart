@@ -9,12 +9,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'eleven_api.dart';
 import 'audio_catalog.dart';
+import 'credit_ledger.dart';
 import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.8';
-  static const versionCode = 8;
+  static const version = '0.1.0-alpha.9';
+  static const versionCode = 9;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -47,6 +48,7 @@ class AppModel extends ChangeNotifier {
   String draft = '';
   String lastSeenVersion = '';
   bool confirmCreditsBeforeGenerate = true;
+  bool creditAlertsEnabled = true;
   Voice? selectedVoice;
   Subscription? subscription;
   ElevenAccount? account;
@@ -58,6 +60,10 @@ class AppModel extends ChangeNotifier {
   int localGeneratedCharacters = 0;
   DateTime? localTrackingSince;
   String localUsageMonth = '';
+  CreditLedger creditLedger = CreditLedger();
+  int _accountRevision = 0;
+  int get creditWarningThreshold => creditAlertsEnabled && usageError == null
+      ? CreditWarning.percentThreshold(subscription?.used, subscription?.limit) ?? 0 : 0;
   final List<AudioRecord> library = [];
   final Set<String> favoriteIds = {};
 
@@ -78,6 +84,8 @@ class AppModel extends ChangeNotifier {
     draft = _prefs?.getString('draft') ?? '';
     lastSeenVersion = _prefs?.getString('seen_version') ?? '';
     confirmCreditsBeforeGenerate = _prefs?.getBool('confirm_credits') ?? true;
+    creditAlertsEnabled = _prefs?.getBool('credit_alerts_enabled') ?? true;
+    creditLedger = CreditLedger.fromJson(_prefs?.getString('credit_ledger_v1'));
     localUsageMonth = _prefs?.getString('local_usage_month') ?? '';
     localGeneratedCharacters = _prefs?.getInt('local_usage_characters') ?? 0;
     localTrackingSince = DateTime.tryParse(_prefs?.getString('local_usage_start') ?? '');
@@ -123,7 +131,14 @@ class AppModel extends ChangeNotifier {
     }
     final changed = clean != key;
     key = clean;
-    if (changed) await _resetLocalUsage();
+    if (changed) {
+      _accountRevision++;
+      refreshingUsage = false;
+      refreshingAccount = false;
+      creditLedger = CreditLedger();
+      await _prefs?.remove('credit_ledger_v1');
+      await _resetLocalUsage();
+    }
     subscription = null;
     account = null;
     usageUpdatedAt = null;
@@ -133,54 +148,71 @@ class AppModel extends ChangeNotifier {
   }
 
   Future<Subscription> testKey() async {
-    final result = await api.checkSubscription();
-    subscription = result;
-    usageUpdatedAt = DateTime.now();
-    usageError = null;
-    notifyListeners();
+    final value = key;
+    final revision = _accountRevision;
+    final result = await api.checkCandidateKey(value);
+    if (revision == _accountRevision && key == value) {
+      subscription = result;
+      usageUpdatedAt = DateTime.now();
+      usageError = null;
+      notifyListeners();
+    }
     return result;
   }
 
-  /// Atualização sob demanda ou na entrada do app. Não cobra créditos por gerar
-  /// áudio e não faz tentativas automáticas em caso de falha.
+  /// Só aplica dados da conta se a chave ainda for a mesma. Uma resposta da
+  /// conta anterior não pode aparecer após uma troca de credencial.
   Future<void> refreshUsage() async {
     if (refreshingUsage || key.isEmpty) return;
+    final activeRevision = _accountRevision;
+    final activeKey = key;
     refreshingUsage = true;
     usageError = null;
     notifyListeners();
     try {
-      await testKey();
-    } catch (error, stack) {
-      AppDiagnostics.instance.capture('CONTA_CONSUMO', error, stack);
-      usageError = friendlyError(error);
-    } finally {
-      refreshingUsage = false;
-      notifyListeners();
-    }
-  }
-
-  /// Mantém dados básicos opcionais separados da assinatura: chaves sem
-  /// permissão User: Read ainda conseguem ver o consumo, se autorizadas.
-  Future<void> refreshAccount() async {
-    if (refreshingAccount || key.isEmpty) return;
-    refreshingAccount = true;
-    accountError = null;
-    notifyListeners();
-    try {
-      account = await api.getAccount();
-      if (account!.subscription != null) {
-        subscription = account!.subscription;
+      final result = await api.checkCandidateKey(activeKey);
+      if (activeRevision == _accountRevision) {
+        subscription = result;
         usageUpdatedAt = DateTime.now();
         usageError = null;
       }
     } catch (error, stack) {
-      AppDiagnostics.instance.capture('CONTA_USUARIO', error, stack);
-      accountError = friendlyError(error);
+      AppDiagnostics.instance.capture('CONTA_CONSUMO', error, stack);
+      if (activeRevision == _accountRevision) usageError = friendlyError(error);
+    } finally {
+      if (activeRevision == _accountRevision) {
+        refreshingUsage = false;
+        notifyListeners();
+      }
     }
-    // Mesmo com escopo User: Read restrito, tenta atualizar a assinatura.
-    await refreshUsage();
-    refreshingAccount = false;
+  }
+
+  Future<void> refreshAccount() async {
+    if (refreshingAccount || key.isEmpty) return;
+    final activeRevision = _accountRevision;
+    refreshingAccount = true;
+    accountError = null;
     notifyListeners();
+    try {
+      final result = await api.getAccount();
+      if (activeRevision == _accountRevision) {
+        account = result;
+        if (result.subscription != null) {
+          subscription = result.subscription;
+          usageUpdatedAt = DateTime.now();
+          usageError = null;
+        }
+      }
+    } catch (error, stack) {
+      AppDiagnostics.instance.capture('CONTA_USUARIO', error, stack);
+      if (activeRevision == _accountRevision) accountError = friendlyError(error);
+    } finally {
+      if (activeRevision == _accountRevision) {
+        await refreshUsage();
+        refreshingAccount = false;
+        notifyListeners();
+      }
+    }
   }
 
   static String _monthKey(DateTime at) =>
@@ -198,15 +230,32 @@ class AppModel extends ChangeNotifier {
 
   /// Contagem estimativa local: apenas textos enviados por este app desde o
   /// início do acompanhamento, nunca valor faturado em créditos reais.
-  Future<void> recordGeneratedCharacters(String generatedText) async {
+  Future<void> recordGeneratedCharacters(String generatedText, {
+    String modelId = CreditEstimator.defaultModel,
+  }) async {
     if (localUsageMonth != _monthKey(DateTime.now())) await _resetLocalUsage();
-    localGeneratedCharacters += generatedText.trim().runes.length;
+    final now = DateTime.now();
+    final count = CreditEstimator.characterCount(generatedText);
+    if (count <= 0) return;
+    localGeneratedCharacters += count;
+    creditLedger.add(CreditEvent(
+      id: now.microsecondsSinceEpoch.toString(), createdAt: now,
+      characters: count, model: modelId,
+      baseEstimate: CreditEstimator.baseEstimate(count, model: modelId),
+    ));
     try {
       await _prefs?.setInt('local_usage_characters', localGeneratedCharacters);
+      await _prefs?.setString('credit_ledger_v1', creditLedger.encode());
     } catch (error, stack) {
       AppDiagnostics.instance.capture('CONSUMO_LOCAL_SALVAR', error, stack);
-      // A falha desta estimativa não deve impedir salvar um áudio pago.
+      // Histórico local é auxiliar e não deve bloquear o áudio pago.
     }
+    notifyListeners();
+  }
+
+  Future<void> setCreditAlerts(bool value) async {
+    creditAlertsEnabled = value;
+    await _prefs?.setBool('credit_alerts_enabled', value);
     notifyListeners();
   }
 

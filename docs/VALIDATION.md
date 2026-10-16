@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.8+8
+# Validação da versão 0.1.0-alpha.9+9
 
 ## Causa do workflow anterior
 
@@ -79,3 +79,10 @@ Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero iss
 **Correção:** os quatro Secrets são passados explicitamente ao passo `flutter build apk`, sem salvar senhas em arquivos versionados. `prepare_android.sh` também valida previamente a keystore e o alias com `keytool -list -storepass:env KEYSTORE_PASSWORD` e modo `umask 077`. O teste `tools/test_signing_workflow.py` impede regressão desse escopo de ambiente.
 
 **Pendências:** recompilar no GitHub Actions e comprovar assinatura e instalação em Android real. O aviso de migração do Kotlin `share_plus` não causou a falha e não foi alterado nesta correção.
+
+## Validação alpha.9
+
+- Testes Flutter acrescentados: crédito base, faixas de alertas 50/80/95, histórico local ordenado e limitado, deduplicação, separação por mês e JSON inválido.
+- Lint/análise/compilação Flutter não disponíveis no ambiente local. Executar GitHub Actions para verificação real.
+- Código não grava texto, chave ou identificação de voz na nova lista de consumo.
+- API oficial usada para dados do plano: `GET /v1/user/subscription`. `character_count` e `character_limit` não são um extrato universal do faturamento.

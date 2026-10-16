@@ -1,9 +1,13 @@
-# Uai Vozes v0.08 · 0.1.0-alpha.8+8 (versionCode 8)
+# Uai Vozes v0.09 · 0.1.0-alpha.9+9 (versionCode 9)
 
-- Corrigido o GitHub Actions #8: a senha da keystore não chegava à etapa `flutter build apk`, causando `SigningConfig "release" is missing required property "storePassword"`.
-- Os quatro Secrets de assinatura agora são disponibilizados tanto à preparação quanto à compilação, sem persistir senhas no repositório.
-- Incluída verificação antecipada da keystore no script de preparação e testes contra regressão do workflow.
-- Mantidos o mesmo certificado (Secrets existentes), identificador `com.drilemoz.uaivozes`, recursos, áudios locais e fluxo de atualização sem desinstalar.
-- Confirmado pelo log #8: `flutter analyze` sem avisos e 32 testes Flutter aprovados para a v0.07. Novo build de APK ainda pendente.
+- Central de créditos com histórico local de até 60 gerações, sem salvar textos, voz, chave ou outros dados sensíveis nesse histórico.
+- Alertas visuais configuráveis aos 50%, 80% e 95% do limite reportado pela ElevenLabs, consultado na API.
+- Distinção entre saldo de uso oficial, caracteres locais acumulados no calendário e estimativa base (sem garantia de custo cobrado, pois planos e vozes podem variar).
+- Consulta atrasada da conta anterior não substitui dados após trocar a chave API.
+- Novos testes automatizados para contagens Unicode, limpeza de dados inválidos e faixas de alertas.
 
-APK previsto: `Uai-Vozes-v0.08.apk` no Artifact e opcionalmente em Releases, fora do ZIP de código, acompanhado do SHA-256 no Artifact.
+**Compatibilidade:** pacote `com.drilemoz.uaivozes` e assinatura release com os mesmos quatro Secrets existentes. Não reenviar Secrets nem alterar a keystore.
+
+**Validação:** código preparado para `flutter analyze`, `flutter test` e build Release no GitHub Actions. Não há compilação Android local confirmada nesta entrega.
+
+APK previsto fora do ZIP: `Uai-Vozes-v0.09.apk` com SHA-256 no Artifact. A publicação em Releases é opcional.

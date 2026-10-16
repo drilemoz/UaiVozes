@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
+import 'credit_ledger.dart';
 import 'account_page.dart';
 import 'diagnostics.dart';
 import 'models.dart';
@@ -94,11 +95,13 @@ class _StudioPageState extends State<StudioPage> {
         return;
       }
       if (widget.model.confirmCreditsBeforeGenerate) {
-        final estimate = content.runes.length;
+        final estimate = CreditEstimator.baseEstimate(
+          CreditEstimator.characterCount(content))!;
         final remaining = widget.model.subscription?.remaining;
+        final charCount = CreditEstimator.characterCount(content);
         final approved = await confirmSheet(context,
           title: 'Confirmar geração de áudio',
-          message: 'Este texto tem $estimate caracteres. Com o modelo Eleven Multilingual v2, o consumo estimado é de aproximadamente $estimate créditos (referência de 1 por caractere). '
+          message: 'Este texto tem $charCount caracteres. Para Eleven Multilingual v2, a referência base é de aproximadamente $estimate créditos, antes de eventuais multiplicadores e condições da conta. '
             'A cobrança efetiva depende das condições da ElevenLabs. '
             '${remaining == null ? 'Saldo não disponível na consulta atual.' : 'Saldo informado pela API: $remaining.'} '
             'Deseja gerar e salvar o áudio?',
@@ -114,7 +117,7 @@ class _StudioPageState extends State<StudioPage> {
         final Uint8List bytes = await widget.model.api.synthesize(
           voiceId: voice.id, text: content);
         // A API já pode ter cobrado. Não repetir automaticamente em erro.
-        await widget.model.recordGeneratedCharacters(content);
+        await widget.model.recordGeneratedCharacters(content, modelId: CreditEstimator.defaultModel);
         final audio = await widget.model.saveAudio(bytes, content, voice);
         if (!mounted) return;
         setState(() => lastAudio = audio); // Salvo mesmo se o player falhar.
@@ -187,6 +190,18 @@ class _StudioPageState extends State<StudioPage> {
               )),
             )),
           ]),
+          if (widget.model.creditWarningThreshold > 0) ...[
+            const SizedBox(height: 8),
+            Semantics(label: 'Aviso de consumo da assinatura', child: UaiVozesCard(
+              child: Row(children: [
+                const Icon(Icons.warning_amber_rounded, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Sua conta atingiu pelo menos '
+                    '${widget.model.creditWarningThreshold}% do limite reportado. '
+                    'Confira o consumo antes de gerar.',
+                    style: const TextStyle(fontSize: 12))),
+              ]))),
+          ],
           const SizedBox(height: 4),
           Text('Suas palavras, outra dimensão sonora.', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 18),

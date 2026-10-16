@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 0.1.0-alpha.9+9 · 16/10/2026
+- Central de créditos ampliada com histórico local de até 60 gerações, armazenando apenas data, modelo, caracteres e referência estimada, sem texto ou chave.
+- Alertas visuais opcionais para 50%, 80% e 95% do limite consultado via API, sem notificações em segundo plano.
+- Estimativa base de consumo revisada: custo real pode incluir multiplicadores de voz e condições da conta; uso oficial e histórico local permanecem separados.
+- Proteção contra resultados atrasados de consultas da conta antiga depois da troca de chave API.
+- Novos testes Flutter para estimador, histórico, JSON inválido e faixas de aviso. Manteve assinatura, identificador e fluxo do GitHub Manager.
+- Compilação APK e testes Flutter da alpha.9 pendentes do GitHub Actions.
+
+
 ## 0.1.0-alpha.8+8 · 16/10/2026
 - Corrigido o workflow #8: os Secrets estavam presentes somente na etapa de preparação Android, não no `flutter build apk`. Isso deixava `storePassword` vazio em `:app:packageRelease`.
 - Incluídos os quatro Secrets também no ambiente de compilação Gradle; keystore e alias validados antecipadamente, sem exibir senhas.

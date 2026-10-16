@@ -273,6 +273,14 @@ class _SettingsPageState extends State<SettingsPage> {
           value: widget.model.confirmCreditsBeforeGenerate,
           onChanged: widget.model.setConfirmCredits,
         )),
+        UaiVozesCard(child: SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.notifications_active_outlined),
+          title: const Text('Alertas de consumo'),
+          subtitle: const Text('Exibir avisos aos 50%, 80% e 95% do limite consultado na API. Não envia notificações em segundo plano.'),
+          value: widget.model.creditAlertsEnabled,
+          onChanged: widget.model.setCreditAlerts,
+        )),
         header(context, 'Aplicativo'),
         UaiVozesCard(child: Column(children: [
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.auto_awesome_rounded),
@@ -296,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.9': [
+    'Central de créditos com histórico local por geração, sem armazenar o texto.',
+    'Alertas opcionais aos 50%, 80% e 95% do limite reportado pela ElevenLabs.',
+    'Estimativas identificadas como valores base e proteção contra retorno de conta antiga.',
+  ],
   '0.1.0-alpha.8': [
     'Corrigida falha de assinatura no GitHub Actions #8, durante o empacotamento Release.',
     'Os Secrets são disponibilizados também ao Gradle, mantendo o certificado de atualização.',

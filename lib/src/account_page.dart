@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_model.dart';
+import 'credit_ledger.dart';
 import 'ui.dart';
 
 String _digits(int value) {
@@ -68,6 +69,12 @@ class UsagePanel extends StatelessWidget {
               : 'Consumo indisponível: ${model.usageError}'),
           style: theme.textTheme.bodyMedium),
       ],
+      if (model.creditWarningThreshold > 0) ...[
+        const SizedBox(height: 8),
+        Text('Aviso: ${model.creditWarningThreshold}% do limite de uso já atingido.',
+          style: TextStyle(fontWeight: FontWeight.w700,
+            color: theme.colorScheme.error)),
+      ],
       if (!compact) ...[
         const SizedBox(height: 13),
         const Divider(height: 18),
@@ -121,13 +128,21 @@ Future<void> showUsageSheet(BuildContext context, AppModel model, {
               fontWeight: FontWeight.w800)),
           const SizedBox(height: 18),
           UsagePanel(model: model),
+          const SizedBox(height: 10),
+          SizedBox(width: double.infinity, child: OutlinedButton.icon(
+            onPressed: () => Navigator.of(ctx).push(MaterialPageRoute<void>(
+              builder: (_) => UsageHistoryPage(model: model))),
+            icon: const Icon(Icons.history_rounded),
+            label: const Text('Histórico local de gerações'),
+          )),
           if (upcomingCharacters != null && upcomingCharacters > 0) ...[
             const Divider(height: 29),
             Text('Texto atual: ${_digits(upcomingCharacters)} caracteres',
               style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 5),
-            Text('Referência aproximada de volume. A geração ainda não '
-              'foi cobrada e o valor em créditos pode ser diferente.',
+            Text('Estimativa base: ${CreditEstimator.baseEstimate(upcomingCharacters)} créditos '
+              'para Eleven Multilingual v2. A geração ainda não foi cobrada. '
+              'Multiplicadores de voz e condições da conta podem alterar o custo.',
               style: Theme.of(ctx).textTheme.bodySmall),
           ],
           const SizedBox(height: 18),
@@ -135,6 +150,54 @@ Future<void> showUsageSheet(BuildContext context, AppModel model, {
             onPressed: () => Navigator.pop(ctx), child: const Text('Fechar'))),
         ]))),
     )),
+  );
+}
+
+class UsageHistoryPage extends StatelessWidget {
+  const UsageHistoryPage({super.key, required this.model});
+  final AppModel model;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Histórico de consumo local')),
+    body: SafeArea(child: AnimatedBuilder(animation: model, builder: (context, _) {
+      final items = model.creditLedger.events;
+      return ListView(padding: const EdgeInsets.fromLTRB(18, 12, 18, 24), children: [
+        UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Registros deste aparelho',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 7),
+            Text('São até ${CreditLedger.maxEntries} registros recentes, desde a v0.09. '
+              'Não incluem o conteúdo dos textos, outras aplicações nem o custo '
+              'efetivo cobrado pela ElevenLabs.',
+              style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 7),
+            Text('Total de caracteres neste mês (inclusive gerações anteriores à v0.09): '
+              '${_digits(model.localGeneratedCharacters)}',
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          ])),
+        const SectionTitle('Gerações recentes'),
+        if (items.isEmpty) const UaiVozesCard(child: Text('Ainda não há gerações registradas nesta versão.')),
+        ...items.map((e) => Padding(
+          padding: const EdgeInsets.only(bottom: 9),
+          child: UaiVozesCard(child: Row(children: [
+            const Icon(Icons.graphic_eq_rounded),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${_digits(e.characters)} caracteres',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(_dateTime(e.createdAt), style: Theme.of(context).textTheme.bodySmall),
+            ])),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text(e.baseEstimate == null ? 'Sem estimativa' : '~${_digits(e.baseEstimate!)}',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('créditos base', style: Theme.of(context).textTheme.bodySmall),
+            ]),
+          ])),
+        )),
+      ]);
+    })),
   );
 }
 
@@ -230,6 +293,13 @@ class _AccountPageState extends State<AccountPage> {
               ])),
             const SectionTitle('Consumo da assinatura'),
             UaiVozesCard(child: UsagePanel(model: model)),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => UsageHistoryPage(model: model))),
+              icon: const Icon(Icons.history_rounded),
+              label: const Text('Ver histórico local'),
+            ),
             const SizedBox(height: 16),
             Text('Alguns campos dependem do plano e das permissões da chave. '
               'Dados indisponíveis não são estimados nem inventados.',
