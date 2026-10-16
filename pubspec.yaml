@@ -1,0 +1,21 @@
+name: eleven
+version: 0.1.0-alpha.1+1
+description: Eleven - estudio de voz ElevenLabs, leve e offline para biblioteca.
+publish_to: none
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.3.0
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.3
+  path_provider: ^2.1.5
+  just_audio: ^0.9.46
+  share_plus: ^10.1.4
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+flutter:
+  uses-material-design: true

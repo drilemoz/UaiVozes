@@ -1,0 +1,11 @@
+{
+  "projectName": "Eleven",
+  "platform": "Flutter Android",
+  "versionName": "0.1.0-alpha.1",
+  "versionCode": 1,
+  "workflow": ".github/workflows/gerar-apk.yml",
+  "workflowName": "Gerar APK Eleven",
+  "apkArtifact": "Eleven-v0.01-apk",
+  "apkFileName": "Eleven-v0.01.apk",
+  "notes": "Metadados informativos. Compatibilidade prática via repositório GitHub e GitHub Actions; não presume esquema privado do GitHub Manager."
+}

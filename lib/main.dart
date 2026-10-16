@@ -1,0 +1,239 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'src/app_model.dart';
+import 'src/library_page.dart';
+import 'src/settings_page.dart';
+import 'src/studio_page.dart';
+import 'src/ui.dart';
+import 'src/voices_page.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final model = AppModel();
+  await model.load();
+  runApp(ElevenApp(model: model));
+}
+
+class ElevenApp extends StatelessWidget {
+  const ElevenApp({super.key, required this.model});
+  final AppModel model;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: model,
+    builder: (ctx, _) => MaterialApp(
+      title: 'Eleven',
+      debugShowCheckedModeBanner: false,
+      theme: elevenTheme(Brightness.light),
+      darkTheme: elevenTheme(Brightness.dark),
+      themeMode: model.themeMode,
+      locale: const Locale('pt', 'BR'),
+      home: MainShell(model: model),
+    ),
+  );
+}
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key, required this.model});
+  final AppModel model;
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.model.key.isEmpty) {
+        showWizard();
+      } else if (widget.model.lastSeenVersion != AppModel.version) {
+        showChangesSheet(context, widget.model);
+      }
+    });
+  }
+
+  void tab(int next) { if (mounted) setState(() => index = next); }
+
+  void showWizard() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (ctx) => WizardSheet(
+        model: widget.model,
+        onExplore: () { Navigator.pop(ctx); tab(1); },
+      ),
+    );
+    if (mounted && widget.model.lastSeenVersion != AppModel.version) {
+      showChangesSheet(context, widget.model);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: IndexedStack(index: index, children: [
+      StudioPage(model: widget.model, openVoices: () => tab(1), openSettings: () => tab(3)),
+      VoicesPage(model: widget.model, onChosen: () => tab(0), openSettings: () => tab(3)),
+      LibraryPage(model: widget.model),
+      SettingsPage(model: widget.model,
+        showChanges: () => showChangesSheet(context, widget.model), showWizard: showWizard),
+    ]),
+    bottomNavigationBar: NavigationBar(
+      selectedIndex: index,
+      onDestinationSelected: tab,
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.graphic_eq_outlined), selectedIcon: Icon(Icons.graphic_eq_rounded), label: 'Estúdio'),
+        NavigationDestination(icon: Icon(Icons.mic_none_rounded), selectedIcon: Icon(Icons.mic_rounded), label: 'Vozes'),
+        NavigationDestination(icon: Icon(Icons.library_music_outlined), selectedIcon: Icon(Icons.library_music_rounded), label: 'Biblioteca'),
+        NavigationDestination(icon: Icon(Icons.tune_outlined), selectedIcon: Icon(Icons.tune_rounded), label: 'Ajustes'),
+      ],
+    ),
+  );
+}
+
+class WizardSheet extends StatefulWidget {
+  const WizardSheet({super.key, required this.model, required this.onExplore});
+  final AppModel model;
+  final VoidCallback onExplore;
+
+  @override
+  State<WizardSheet> createState() => _WizardSheetState();
+}
+
+class _WizardSheetState extends State<WizardSheet> {
+  int step = 0;
+  bool busy = false;
+  bool reveal = false;
+  late final TextEditingController keyController = TextEditingController(text: widget.model.key);
+
+  @override
+  void dispose() {
+    keyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> save() async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await widget.model.setKey(keyController.text);
+      if (mounted) notice(context, 'Chave armazenada.');
+    } catch (_) {
+      if (mounted) notice(context, 'Não foi possível guardar a chave API.');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> paste() async {
+    final clip = await Clipboard.getData(Clipboard.kTextPlain);
+    if (clip?.text?.trim().isNotEmpty == true) {
+      keyController.text = clip!.text!.trim();
+      setState(() {});
+    }
+  }
+
+  Future<void> test() async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await widget.model.setKey(keyController.text);
+      final result = await widget.model.testKey();
+      if (mounted) notice(context, 'API conectada • Plano ${result.tier}.');
+    } catch (e) {
+      if (mounted) notice(context, '$e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const icons = [Icons.key_rounded, Icons.mic_none_rounded,
+      Icons.palette_outlined, Icons.auto_awesome_rounded];
+    const titles = ['Conectar ElevenLabs', 'Escolher uma voz', 'Seu estilo visual', 'Tudo preparado'];
+    const details = [
+      'Cole sua chave pessoal da API e valide o acesso.',
+      'Explore vozes por idioma, categoria e estilo.',
+      'Escolha um visual confortável para seu aparelho.',
+      'Digite o texto, gere uma voz e encontre o MP3 na Biblioteca.',
+    ];
+    return SafeArea(child: Padding(
+      padding: EdgeInsets.fromLTRB(22, 10, 22, MediaQuery.viewInsetsOf(context).bottom + 20),
+      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Row(children: [
+          Expanded(child: Text('Assistente de configuração',
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+          const Chip(label: Text('Primeiro acesso')),
+        ]),
+        const SizedBox(height: 17),
+        Row(children: List.generate(4, (i) => Expanded(child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: AnimatedContainer(duration: const Duration(milliseconds: 260), height: 5,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8),
+                color: i <= step ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest)),
+        )))),
+        const SizedBox(height: 28),
+        CircleAvatar(radius: 40, backgroundColor: theme.colorScheme.surfaceContainerHigh,
+            child: Icon(icons[step], size: 34)),
+        const SizedBox(height: 15),
+        Text(titles[step], textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 7),
+        Text(details[step], textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 20),
+        if (step == 0) ...[
+          TextField(controller: keyController, obscureText: !reveal,
+            enableSuggestions: false, autocorrect: false,
+            decoration: InputDecoration(hintText: 'Chave API',
+              suffixIcon: IconButton(onPressed: () => setState(() => reveal = !reveal),
+                icon: Icon(reveal ? Icons.visibility_off_outlined : Icons.visibility_outlined))),
+          ),
+          const SizedBox(height: 5),
+          Wrap(spacing: 8, children: [
+            TextButton.icon(onPressed: paste, icon: const Icon(Icons.content_paste), label: const Text('Colar')),
+            TextButton.icon(onPressed: busy ? null : save, icon: const Icon(Icons.shield_outlined), label: const Text('Guardar')),
+            TextButton.icon(onPressed: busy ? null : test, icon: const Icon(Icons.wifi_tethering), label: const Text('Testar')),
+          ]),
+        ],
+        if (step == 1)
+          OutlinedButton.icon(onPressed: widget.onExplore, icon: const Icon(Icons.mic_rounded),
+            label: const Text('Abrir explorador de vozes')),
+        if (step == 2)
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_outlined), label: Text('Claro')),
+              ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_outlined), label: Text('Preto')),
+              ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.phone_android), label: Text('Auto')),
+            ],
+            selected: {widget.model.themeMode},
+            onSelectionChanged: (selection) => setState(() => widget.model.setTheme(selection.first)),
+          ),
+        if (step == 3)
+          Text('O áudio será salvo automaticamente após cada geração.',
+            textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+        const SizedBox(height: 25),
+        Row(children: [
+          OutlinedButton(onPressed: step == 0 ? null : () => setState(() => step--), child: const Text('Voltar')),
+          const Spacer(),
+          Text('Etapa ${step + 1} de 4', style: theme.textTheme.bodySmall),
+          const Spacer(),
+          FilledButton(onPressed: () {
+            if (step == 3) Navigator.pop(context);
+            else setState(() => step++);
+          }, child: Text(step == 3 ? 'Concluir' : 'Próximo')),
+        ]),
+      ])),
+    ));
+  }
+}

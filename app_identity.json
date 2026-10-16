@@ -1,0 +1,9 @@
+{
+  "name": "Eleven",
+  "platform": "android",
+  "framework": "flutter",
+  "packageName": "com.drilemoz.eleven",
+  "versionName": "0.1.0-alpha.1",
+  "versionCode": 1,
+  "apkFileName": "Eleven-v0.01.apk"
+}
