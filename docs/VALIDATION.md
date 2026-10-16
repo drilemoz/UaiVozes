@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.5+5
+# Validação da versão 0.1.0-alpha.6+6
 
 ## Causa do workflow anterior
 
@@ -38,3 +38,14 @@ Não há SDK Flutter ou Android no ambiente local; o resultado de `flutter analy
 - Confirmação de estimativa antes de sintetizar, nunca há tentativa automática em erro.
 - Testes unitários novos para parse de chave, filtro do ranking, etiquetas PT e identidade.
 - Sem SDK Flutter/Android local; `flutter analyze`, `flutter test` e APK arm64 dependem de execução no GitHub Actions.
+
+
+## Alterações e validação local alpha.6
+
+- Revisão do fluxo TTS: trava no modelo e no diálogo, sem retentativas automáticas; solicitação de API pode ter sido cobrada mesmo quando a conexão falhou.
+- Catálogo JSON atômico (`lib/src/audio_catalog.dart`) com backup, migração de metadados antigos sem apagar o legado, journal para arquivos recebidos mas não indexados e exclusão preparada para interrupções.
+- Streams de player canceladas, erros de reprodução reportados separadamente da gravação do MP3.
+- Diagnóstico agora ordena escritas nas preferências, evitando sobrescritas tardias após limpeza.
+- Workflow bloqueia release se faltar qualquer um dos quatro Secrets de assinatura, preservando o certificado nas versões subsequentes.
+- Testes adicionados em `test/audio_catalog_test.dart` e `test/generation_lock_test.dart`.
+- Validações possíveis neste ambiente: verificação do ZIP, leitura/parse estrutural de JSON/YAML/XML, `bash -n` e regras estáticas de identidade/versão. **Não há SDK Flutter/Android disponível aqui** para `flutter analyze`, `flutter test`, compilação ou instalação. Esses resultados permanecem pendentes do workflow `Gerar APK Uai Vozes`.

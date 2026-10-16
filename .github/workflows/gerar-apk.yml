@@ -40,6 +40,8 @@ jobs:
         run: bash scripts/prepare_android.sh
       - name: Instalar dependências
         run: flutter pub get
+      - name: Validar identidade e estrutura
+        run: python3 tools/validate_source.py
       - name: Verificar sintaxe e análise
         run: flutter analyze
       - name: Testar modelos
@@ -49,13 +51,16 @@ jobs:
       - name: Exportar APK fora do ZIP
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.05.apk
-          test -s dist/Uai-Vozes-v0.05.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.06.apk
+          test -s dist/Uai-Vozes-v0.06.apk
+          sha256sum dist/Uai-Vozes-v0.06.apk > dist/Uai-Vozes-v0.06.apk.sha256
       - name: APK para download (GitHub Manager / Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: Uai-Vozes-v0.05-apk
-          path: dist/Uai-Vozes-v0.05.apk
+          name: Uai-Vozes-v0.06-apk
+          path: |
+            dist/Uai-Vozes-v0.06.apk
+            dist/Uai-Vozes-v0.06.apk.sha256
           if-no-files-found: error
           retention-days: 30
       - name: Publicar Release opcional
@@ -63,9 +68,9 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha.5
-          name: Uai Vozes v0.05 (alpha.5)
+          tag_name: v0.1.0-alpha.6
+          name: Uai Vozes v0.06 (alpha.6)
           prerelease: true
           generate_release_notes: false
           body_path: RELEASE_NOTES.md
-          files: dist/Uai-Vozes-v0.05.apk
+          files: dist/Uai-Vozes-v0.06.apk

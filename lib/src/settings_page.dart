@@ -296,6 +296,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.6': [
+    'Bloqueio global de solicitações TTS duplicadas, inclusive durante a confirmação.',
+    'Biblioteca com gravação atômica, recuperação de áudio e migração sem excluir o histórico.',
+    'Erros de reprodução tratados e assinatura obrigatória no APK do GitHub Actions.',
+  ],
   '0.1.0-alpha.5': [
     'Nome Uai Vozes sem vírgula em toda a interface e nos metadados.',
     'API: botões em linha, importação/exportação TXT e confirmação de chave não salva.',

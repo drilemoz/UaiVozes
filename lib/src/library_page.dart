@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -21,12 +22,15 @@ class _LibraryPageState extends State<LibraryPage> {
   final player = AudioPlayer();
   String? current;
   bool playing = false;
+  bool loadingAudio = false;
+  StreamSubscription<PlayerState>? playbackStateSubscription;
+  StreamSubscription<PlaybackEvent>? playbackErrorSubscription;
   String query = '';
 
   @override
   void initState() {
     super.initState();
-    player.playerStateStream.listen((state) {
+    playbackStateSubscription = player.playerStateStream.listen((state) {
       if (!mounted) return;
       if (state.processingState == ProcessingState.completed) {
         setState(() { playing = false; current = null; });
@@ -34,6 +38,11 @@ class _LibraryPageState extends State<LibraryPage> {
         setState(() => playing = player.playing);
       }
     });
+    playbackErrorSubscription = player.playbackEventStream.listen(
+      (_) {}, onError: (Object error, StackTrace stack) {
+        AppDiagnostics.instance.capture('BIBLIOTECA_PLAYER_EVENTO', error, stack);
+        if (mounted) notice(context, 'Falha no player. O arquivo continua salvo.');
+      });
     widget.model.addListener(reload);
   }
 
@@ -42,11 +51,15 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void dispose() {
     widget.model.removeListener(reload);
-    player.dispose();
+    unawaited(playbackStateSubscription?.cancel() ?? Future<void>.value());
+    unawaited(playbackErrorSubscription?.cancel() ?? Future<void>.value());
+    unawaited(player.dispose());
     super.dispose();
   }
 
   Future<void> play(AudioRecord item) async {
+    if (loadingAudio) return;
+    loadingAudio = true;
     try {
       if (current == item.id && player.playing) {
         await player.pause();
@@ -59,10 +72,17 @@ class _LibraryPageState extends State<LibraryPage> {
         await player.seek(Duration.zero);
       }
       setState(() => current = item.id);
-      await player.play();
+      // just_audio completa play() quando a reprodução termina; não bloquear
+      // o botão Pausar durante todo o áudio.
+      unawaited(player.play().catchError((Object error, StackTrace stack) {
+        AppDiagnostics.instance.capture('BIBLIOTECA_PLAYER_ASYNC', error, stack);
+        if (mounted) notice(context, 'Não foi possível reproduzir o áudio.');
+      }));
     } catch (e, stack) {
       AppDiagnostics.instance.capture('BIBLIOTECA_REPRODUZIR', e, stack);
       if (mounted) notice(context, 'Arquivo de áudio indisponível.');
+    } finally {
+      loadingAudio = false;
     }
   }
 

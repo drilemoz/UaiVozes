@@ -13,3 +13,6 @@
 
 - Dados de consumo: nunca apresentar `character_count` como créditos faturados universais; distinguir informação da API e estimativa local.
 - Fluxo inicial: abrir novidades antes do assistente de configuração.
+
+- Assinatura release é obrigatória a partir da v0.06; sem os quatro Secrets de keystore, workflow deve falhar para não gerar APK que exige reinstalação. Não incluir keystore ou Secrets no ZIP.
+- Biblioteca: preservar migração da antiga preferência `library`, catálogo atômico e journals. Não apagar áudio após falhas de índice; testes de recuperação devem ser mantidos.

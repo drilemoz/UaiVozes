@@ -8,12 +8,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'eleven_api.dart';
+import 'audio_catalog.dart';
 import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.5';
-  static const versionCode = 5;
+  static const version = '0.1.0-alpha.6';
+  static const versionCode = 6;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -21,6 +22,25 @@ class AppModel extends ChangeNotifier {
   late final ElevenApi api = ElevenApi(readKey);
 
   SharedPreferences? _prefs;
+  AudioCatalog? _catalog;
+  bool get canSaveAudio => _catalog != null;
+  bool _generationInProgress = false;
+  bool get generationInProgress => _generationInProgress;
+
+  /// Trava no modelo, não na tela: evita dupla chamada TTS mesmo após reconstruir UI.
+  bool tryBeginGeneration() {
+    if (_generationInProgress) return false;
+    _generationInProgress = true;
+    notifyListeners();
+    return true;
+  }
+
+  void finishGeneration() {
+    if (!_generationInProgress) return;
+    _generationInProgress = false;
+    notifyListeners();
+  }
+
   String key = '';
   ThemeMode themeMode = ThemeMode.system;
   String language = 'pt';
@@ -76,9 +96,19 @@ class AppModel extends ChangeNotifier {
       AppDiagnostics.instance.capture('PREFERENCIAS_VOZ', e, stack);
       selectedVoice = null;
     }
-    library.addAll(decodeAudioRecords(_prefs?.getString('library') ?? '[]'));
-    // Arquivos podem ser apagados pelo Android/usuário.
-    library.removeWhere((e) => !File(e.path).existsSync());
+    // Migração sem apagar a preferência legada: a v0.05 armazenava toda a
+    // biblioteca em SharedPreferences. Índice JSON agora possui backup e journal.
+    try {
+      final root = await getApplicationDocumentsDirectory();
+      _catalog = AudioCatalog(Directory('${root.path}/audios'));
+      library.addAll(await _catalog!.load(
+        legacyJson: _prefs?.getString('library') ?? '[]'));
+    } catch (error, stack) {
+      AppDiagnostics.instance.capture('BIBLIOTECA_CARREGAR', error, stack);
+      // Falhas de I/O não devem apagar o catálogo antigo nem fechar o app.
+      library.addAll(decodeAudioRecords(_prefs?.getString('library') ?? '[]'));
+      _catalog = null; // Impede alterações até que o armazenamento volte.
+    }
     notifyListeners();
   }
 
@@ -226,13 +256,18 @@ class AppModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<AudioCatalog> _requireCatalog() async {
+    final active = _catalog;
+    if (active != null) return active;
+    throw const FileSystemException(
+      'Biblioteca indisponível. Reinicie o app e consulte o diagnóstico.');
+  }
+
   Future<AudioRecord> saveAudio(Uint8List audio, String text, Voice voice) async {
-    final dir = Directory('${(await getApplicationDocumentsDirectory()).path}/audios');
-    await dir.create(recursive: true);
+    final catalog = await _requireCatalog();
     final now = DateTime.now();
     final id = now.microsecondsSinceEpoch.toString();
-    final path = '${dir.path}/uaivozes_$id.mp3';
-    await File(path).writeAsBytes(audio, flush: true);
+    final path = '${catalog.directory.path}/uaivozes_$id.mp3';
     final title = text.trim().replaceAll(RegExp(r'\s+'), ' ');
     final item = AudioRecord(
       id: id,
@@ -243,8 +278,8 @@ class AppModel extends ChangeNotifier {
       text: text,
       createdAt: now,
     );
+    await catalog.save(audio, item, library);
     library.insert(0, item);
-    await _persistLibrary();
     notifyListeners();
     return item;
   }
@@ -252,21 +287,19 @@ class AppModel extends ChangeNotifier {
   Future<void> renameAudio(AudioRecord audio, String newName) async {
     final index = library.indexWhere((e) => e.id == audio.id);
     if (index == -1 || newName.trim().isEmpty) return;
-    library[index] = library[index].withName(newName.trim());
-    await _persistLibrary();
+    final updated = [...library];
+    updated[index] = updated[index].withName(newName.trim());
+    await (await _requireCatalog()).persist(updated);
+    library[index] = updated[index];
     notifyListeners();
   }
 
   Future<void> deleteAudio(AudioRecord audio) async {
-    final file = File(audio.path);
-    if (await file.exists()) await file.delete();
+    if (!library.any((e) => e.id == audio.id)) return;
+    final remaining = library.where((e) => e.id != audio.id).toList();
+    await (await _requireCatalog()).delete(audio, remaining);
     library.removeWhere((e) => e.id == audio.id);
-    await _persistLibrary();
     notifyListeners();
-  }
-
-  Future<void> _persistLibrary() async {
-    await _prefs?.setString('library', jsonEncode(library.map((e) => e.toJson()).toList()));
   }
 
   @override

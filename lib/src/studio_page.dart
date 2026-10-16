@@ -24,6 +24,9 @@ class _StudioPageState extends State<StudioPage> {
   late final TextEditingController text = TextEditingController(text: widget.model.draft);
   late final AudioPlayer player = AudioPlayer();
   bool generating = false;
+  bool confirming = false;
+  StreamSubscription<PlayerState>? playbackStateSubscription;
+  StreamSubscription<PlaybackEvent>? playbackErrorSubscription;
   AudioRecord? lastAudio;
   bool playing = false;
   Timer? draftTimer;
@@ -31,78 +34,111 @@ class _StudioPageState extends State<StudioPage> {
   @override
   void initState() {
     super.initState();
-    player.playerStateStream.listen((state) {
+    playbackStateSubscription = player.playerStateStream.listen((state) {
       if (!mounted) return;
       if (state.processingState == ProcessingState.completed) {
-        player.pause();
-        player.seek(Duration.zero);
+        unawaited(player.pause().then((_) => player.seek(Duration.zero)).catchError(
+          (Object error, StackTrace stack) {
+            AppDiagnostics.instance.capture('ESTUDIO_FINALIZAR_PLAYER', error, stack);
+          }));
       }
       setState(() => playing = player.playing);
     });
+    playbackErrorSubscription = player.playbackEventStream.listen(
+      (_) {},
+      onError: (Object error, StackTrace stack) {
+        AppDiagnostics.instance.capture('ESTUDIO_PLAYER_EVENTO', error, stack);
+        if (mounted) notice(context, 'Erro de reprodução. O MP3 salvo continua na Biblioteca.');
+      },
+    );
   }
 
   @override
   void dispose() {
     draftTimer?.cancel();
-    widget.model.setDraft(text.text);
+    unawaited(widget.model.setDraft(text.text));
+    unawaited(playbackStateSubscription?.cancel() ?? Future<void>.value());
+    unawaited(playbackErrorSubscription?.cancel() ?? Future<void>.value());
     text.dispose();
-    player.dispose();
+    unawaited(player.dispose());
     super.dispose();
   }
 
   Future<void> generate() async {
-    if (generating) return;
-    if (widget.model.key.isEmpty) {
-      notice(context, 'Adicione sua chave API em Configurações.');
-      widget.openSettings();
-      return;
-    }
-    final voice = widget.model.selectedVoice;
-    if (voice == null) {
-      notice(context, 'Escolha uma voz para gerar o áudio.');
-      widget.openVoices();
-      return;
-    }
-    final content = text.text.trim();
-    if (content.isEmpty) {
-      notice(context, 'Digite seu texto primeiro.');
-      return;
-    }
-    if (content.runes.length > 5000) {
-      notice(context, 'O texto deve ter no máximo 5.000 caracteres.');
-      return;
-    }
-    if (widget.model.confirmCreditsBeforeGenerate) {
-      final estimate = content.runes.length;
-      final remaining = widget.model.subscription?.remaining;
-      final approved = await confirmSheet(context,
-        title: 'Confirmar geração de áudio',
-        message: 'Este texto tem $estimate caracteres. Com o modelo Eleven Multilingual v2, o consumo estimado é de aproximadamente $estimate créditos (referência de 1 por caractere). '
-          'A cobrança efetiva depende das condições da ElevenLabs. '
-          '${remaining == null ? 'Saldo não disponível na consulta atual.' : 'Saldo informado pela API: $remaining.'} '
-          'Deseja gerar e salvar o áudio?',
-        action: 'Gerar áudio');
-      if (!approved || !mounted) return;
-    }
-    setState(() => generating = true);
+    // Trava imediata inclusive durante a confirmação e compartilhada no modelo.
+    if (confirming || generating || widget.model.generationInProgress) return;
+    confirming = true;
     try {
-      final Uint8List bytes = await widget.model.api.synthesize(voiceId: voice.id, text: content);
-      // Cobrança potencial já ocorreu na API; contabiliza antes de gravar MP3.
-      await widget.model.recordGeneratedCharacters(content);
-      final audio = await widget.model.saveAudio(bytes, content, voice);
-      if (!mounted) return;
-      await player.setFilePath(audio.path);
-      if (!mounted) return;
-      setState(() => lastAudio = audio);
-      // Consulta o saldo após a geração, sem repetir a síntese e sem
-      // interferir no salvamento do MP3 caso a consulta falhe.
-      unawaited(widget.model.refreshUsage());
-      notice(context, 'Áudio gerado e salvo na biblioteca.');
-    } catch (e, stack) {
-      AppDiagnostics.instance.capture('ESTUDIO_GERAR', e, stack);
-      if (mounted) notice(context, '$e');
+      if (widget.model.key.isEmpty) {
+        notice(context, 'Adicione sua chave API em Configurações.');
+        widget.openSettings();
+        return;
+      }
+      if (!widget.model.canSaveAudio) {
+        notice(context, 'Biblioteca indisponível. Reinicie o aplicativo e consulte o Diagnóstico antes de gastar créditos.');
+        return;
+      }
+      final voice = widget.model.selectedVoice;
+      if (voice == null) {
+        notice(context, 'Escolha uma voz para gerar o áudio.');
+        widget.openVoices();
+        return;
+      }
+      final content = text.text.trim();
+      if (content.isEmpty) {
+        notice(context, 'Digite seu texto primeiro.');
+        return;
+      }
+      if (content.runes.length > 5000) {
+        notice(context, 'O texto deve ter no máximo 5.000 caracteres.');
+        return;
+      }
+      if (widget.model.confirmCreditsBeforeGenerate) {
+        final estimate = content.runes.length;
+        final remaining = widget.model.subscription?.remaining;
+        final approved = await confirmSheet(context,
+          title: 'Confirmar geração de áudio',
+          message: 'Este texto tem $estimate caracteres. Com o modelo Eleven Multilingual v2, o consumo estimado é de aproximadamente $estimate créditos (referência de 1 por caractere). '
+            'A cobrança efetiva depende das condições da ElevenLabs. '
+            '${remaining == null ? 'Saldo não disponível na consulta atual.' : 'Saldo informado pela API: $remaining.'} '
+            'Deseja gerar e salvar o áudio?',
+          action: 'Gerar áudio');
+        if (!approved || !mounted) return;
+      }
+      if (!widget.model.tryBeginGeneration()) {
+        if (mounted) notice(context, 'Outra geração já está em andamento.');
+        return;
+      }
+      if (mounted) setState(() => generating = true);
+      try {
+        final Uint8List bytes = await widget.model.api.synthesize(
+          voiceId: voice.id, text: content);
+        // A API já pode ter cobrado. Não repetir automaticamente em erro.
+        await widget.model.recordGeneratedCharacters(content);
+        final audio = await widget.model.saveAudio(bytes, content, voice);
+        if (!mounted) return;
+        setState(() => lastAudio = audio); // Salvo mesmo se o player falhar.
+        try {
+          await player.setFilePath(audio.path);
+        } catch (error, stack) {
+          AppDiagnostics.instance.capture('ESTUDIO_CARREGAR_PLAYER', error, stack);
+          if (mounted) notice(context, 'MP3 salvo na Biblioteca, mas o player não conseguiu abri-lo.');
+          return;
+        }
+        if (!mounted) return;
+        unawaited(widget.model.refreshUsage());
+        notice(context, 'Áudio gerado e salvo na Biblioteca.');
+      } catch (error, stack) {
+        AppDiagnostics.instance.capture('ESTUDIO_GERAR', error, stack);
+        if (mounted) notice(context,
+          'Não foi possível concluir a geração ou o salvamento. '
+          'Antes de repetir, confira sua Biblioteca e os créditos da ElevenLabs.');
+      } finally {
+        widget.model.finishGeneration();
+        if (mounted) setState(() => generating = false);
+      }
     } finally {
-      if (mounted) setState(() => generating = false);
+      confirming = false;
     }
   }
 
@@ -205,7 +241,7 @@ class _StudioPageState extends State<StudioPage> {
           ])),
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: generating ? null : generate,
+            onPressed: generating || confirming || widget.model.generationInProgress ? null : generate,
             icon: generating
                 ? const SizedBox(height: 19, width: 19, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.auto_awesome_rounded),

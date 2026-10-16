@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 0.1.0-alpha.6+6 · 16/10/2026
+
+- **Estúdio:** bloqueio síncrono enquanto a caixa de confirmação está aberta e trava de TTS no `AppModel` para evitar requisições paralelas. Sem retentativa automática em falha incerta.
+- **Biblioteca:** `AudioCatalog` separado com índice JSON salvo atomicamente e cópia íntegra, journal por MP3 para recuperar gerações interrompidas, migração sem excluir o índice legado das preferências e exclusão com preparação reversível.
+- **Player:** assinaturas dos streams canceladas na desmontagem; erros assíncronos categorizados; MP3 aparece na biblioteca mesmo se o player falhar após salvar; pausar durante a reprodução permanece possível.
+- **Diagnóstico:** gravações locais serializadas para impedir eventos antigos sobrescreverem novos ou reaparecerem após a limpeza.
+- **GitHub Actions:** assinatura estável obrigatória via quatro Secrets; sem assinatura, build falha explicitamente em vez de publicar APK assinado pelo debug do runner. Artifact ARM64 inclui APK separado e SHA-256.
+- Novos testes automatizados para recuperação, migração, exclusão e prevenção de dupla geração. Sem dependência Flutter adicional. `flutter analyze`, `flutter test` e build Android ainda pendentes de CI.
+
 ## 0.1.0-alpha.5+5 · 16/10/2026
 
 - Nome público corrigido para **Uai Vozes** (sem vírgula). Identificador Android **preservado**: `com.drilemoz.uaivozes`, para permitir atualização sobre as versões anteriores com certificado igual.
@@ -42,4 +51,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.6+6. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.7+7. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

@@ -36,6 +36,7 @@ class AppDiagnostics extends ChangeNotifier {
   static const _prefsKey = 'diagnostics_local_v1';
   final List<DiagnosticEntry> _entries = [];
   SharedPreferences? _prefs;
+  Future<void> _pendingWrite = Future<void>.value();
 
   List<DiagnosticEntry> get entries => List.unmodifiable(_entries.reversed);
 
@@ -45,7 +46,7 @@ class AppDiagnostics extends ChangeNotifier {
       final values = jsonDecode(_prefs?.getString(_prefsKey) ?? '[]');
       if (values is List) {
         _entries.clear();
-        _entries.addAll(values.map(DiagnosticEntry.fromJson).whereType<DiagnosticEntry>().take(maxEntries));
+        _entries.addAll(values.map(DiagnosticEntry.fromJson).whereType<DiagnosticEntry>().toList().reversed.take(maxEntries).toList().reversed);
       }
       notifyListeners();
     } catch (_) {
@@ -83,22 +84,25 @@ class AppDiagnostics extends ChangeNotifier {
   void _persist() {
     final preferences = _prefs;
     if (preferences == null) return;
-    // Persistência no armazenamento interno do próprio aplicativo.
-    try {
-      // Falha na persistência do diagnóstico não pode gerar ciclo de erro.
-      preferences.setString(_prefsKey,
-        jsonEncode(_entries.map((e) => e.toJson()).toList()))
-        .catchError((Object _) => false);
-    } catch (_) {
-      // Falha do diagnóstico nunca deve derrubar o aplicativo.
-    }
+    final snapshot = jsonEncode(_entries.map((e) => e.toJson()).toList());
+    // Serializa gravações: uma operação lenta não pode sobrescrever eventos
+    // posteriores nem recriar o histórico após o comando Limpar.
+    _pendingWrite = _pendingWrite.then((_) async {
+      await preferences.setString(_prefsKey, snapshot);
+    }).catchError((Object _) {
+      // O diagnóstico jamais gera uma cascata de exceções.
+    });
   }
 
   Future<void> clear() async {
     _entries.clear();
     notifyListeners();
+    await _pendingWrite;
     await _prefs?.remove(_prefsKey);
   }
+
+  @visibleForTesting
+  Future<void> flush() => _pendingWrite;
 
   String report({String version = 'desconhecida'}) {
     final out = StringBuffer('Uai Vozes | Diagnóstico local\n')

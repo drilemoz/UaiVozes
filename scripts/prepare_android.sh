@@ -21,8 +21,15 @@ cp scripts/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 mkdir -p android/app/src/main/kotlin/com/drilemoz/uaivozes
 cp scripts/android/MainActivity.kt android/app/src/main/kotlin/com/drilemoz/uaivozes/MainActivity.kt
 # O scaffold Flutter define minSdk/versionCode no Gradle a partir do pubspec.
-# Assinatura de produção opcional via Secrets; nunca persistir keystore no ZIP.
-if [[ -f android/app/build.gradle.kts && -n "${KEYSTORE_BASE64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
+# Assinatura ESTÁVEL obrigatória: nunca entregar release assinada pelo debug
+# do runner, que mudaria o certificado e obrigaria desinstalar o app.
+for required in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+  if [[ -z "${!required:-}" ]]; then
+    echo "ERRO: Secret ${required} ausente. Importe os quatro Secrets no GitHub Manager antes de compilar." >&2
+    exit 1
+  fi
+done
+if [[ -f android/app/build.gradle.kts ]]; then
   printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
   python3 - <<'PY'
 from pathlib import Path
@@ -45,7 +52,9 @@ if 'signingConfigs.getByName("release")' not in s:
     assert marker2 in s, 'Assinatura debug padrão Flutter não encontrada'
     s=s.replace(marker2,'signingConfig = signingConfigs.getByName("release")',1)
     p.write_text(s)
+assert 'signingConfig = signingConfigs.getByName("release")' in s, 'Release não aponta para assinatura estável'
 PY
 else
-  echo 'AVISO: sem quatro Secrets, APK release terá assinatura debug do template Flutter e não terá assinatura estável entre runners.' >&2
+  echo 'ERRO: android/app/build.gradle.kts não encontrado.' >&2
+  exit 1
 fi

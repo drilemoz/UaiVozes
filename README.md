@@ -2,11 +2,19 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.5+5** · APK pretendido: **Uai-Vozes-v0.05.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.6+6** · APK pretendido: **Uai-Vozes-v0.06.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.6 (estabilidade)
+
+- Uma solicitação de geração por vez no modelo compartilhado, inclusive durante a confirmação de créditos; sem retentativa automática após falhas de rede.
+- Biblioteca com índice JSON e backup no diretório privado; migração automática da lista da v0.05, preservando a preferência antiga para recuperação. Journals permitem recuperar MP3s salvos durante interrupções.
+- Erros de reprodução separados de erros de salvamento: áudio gerado permanece acessível na Biblioteca mesmo que o player não o abra.
+- Diagnósticos com persistência serializada; streams de áudio cancelados ao desmontar páginas.
+- APK de GitHub Actions exige assinatura via os quatro Secrets. Sem eles o workflow falha e não publica APK temporariamente assinado. Artifact inclui checksum SHA-256.
 
 ## Alterações da alpha.5
 
@@ -44,12 +52,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.05.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.06.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura:** sem os quatro Secrets opcionais o template Flutter usa assinatura de desenvolvimento. Para atualizações instaláveis sobre versões anteriores, providencie keystore estável e secreta; veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.06:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

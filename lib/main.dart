@@ -140,6 +140,7 @@ class WizardSheet extends StatefulWidget {
 class _WizardSheetState extends State<WizardSheet> {
   int step = 0;
   bool busy = false;
+  bool advancing = false;
   bool reveal = false;
   String feedback = '';
   bool feedbackError = false;
@@ -239,7 +240,9 @@ class _WizardSheetState extends State<WizardSheet> {
   }
 
   Future<void> nextStep() async {
-    if (busy || loadingVoices) return;
+    if (busy || loadingVoices || advancing) return;
+    advancing = true;
+    try {
     if (step == 3) { Navigator.pop(context); return; }
     if (step == 0) {
       final candidate = keyController.text.trim();
@@ -263,6 +266,9 @@ class _WizardSheetState extends State<WizardSheet> {
       return;
     }
     setState(() => step++);
+    } finally {
+      advancing = false;
+    }
   }
 
   @override
@@ -372,7 +378,7 @@ class _WizardSheetState extends State<WizardSheet> {
           const Spacer(),
           Text('Etapa ${step + 1} de 4', style: theme.textTheme.bodySmall),
           const Spacer(),
-          FilledButton(onPressed: busy ? null : nextStep, child: Text(step == 3 ? 'Concluir' : 'Próximo')),
+          FilledButton(onPressed: busy || advancing ? null : nextStep, child: Text(step == 3 ? 'Concluir' : 'Próximo')),
         ]),
       ])),
     ));
