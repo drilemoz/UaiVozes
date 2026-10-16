@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.4+4
+# Validação da versão 0.1.0-alpha.5+5
 
 ## Causa do workflow anterior
 
@@ -29,3 +29,12 @@ Não há SDK Flutter ou Android no ambiente local; o resultado de `flutter analy
 - Seleção de temas usa `SegmentedButton` horizontal; filtro de favoritas compactado num ícone.
 - Testes novos: parsing de assinatura/conta, disponibilidade de dados e casos sem valores; indicador de estimativa local mensal.
 - Validação estrutural local não substitui `flutter analyze`, `flutter test` e build CI.
+
+
+## Alterações alpha.5
+- Chave testada por consulta isolada sem persistência; proteção de avanço no wizard até salvar.
+- Import/export implementado por Kotlin e seletor de documentos SAF, não sujeito a permissões amplas de armazenamento. Arquivos exportados não são criptografados; o usuário confirma isso.
+- Vozes no wizard por consulta filtrada, seleção de idioma pt e ranking `locale=pt-BR`, sem fallback para inglês.
+- Confirmação de estimativa antes de sintetizar, nunca há tentativa automática em erro.
+- Testes unitários novos para parse de chave, filtro do ranking, etiquetas PT e identidade.
+- Sem SDK Flutter/Android local; `flutter analyze`, `flutter test` e APK arm64 dependem de execução no GitHub Actions.

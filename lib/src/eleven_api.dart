@@ -121,8 +121,8 @@ class ElevenApi {
   final http.Client _client;
   static const host = 'api.elevenlabs.io';
 
-  Future<Map<String, String>> _headers() async {
-    final key = (await _readKey()).trim();
+  Future<Map<String, String>> _headers([String? keyOverride]) async {
+    final key = (keyOverride ?? await _readKey()).trim();
     if (key.isEmpty) {
       throw const ElevenApiException('Configure sua chave de API primeiro.');
     }
@@ -164,10 +164,10 @@ class ElevenApi {
         detail.isEmpty ? 'A ElevenLabs retornou HTTP $code.' : detail, code);
   }
 
-  Future<http.Response> _get(String path, [Map<String, String>? params]) async {
+  Future<http.Response> _get(String path, [Map<String, String>? params, String? overrideKey]) async {
     try {
       final response = await _client
-          .get(Uri.https(host, path, params), headers: await _headers())
+          .get(Uri.https(host, path, params), headers: await _headers(overrideKey))
           .timeout(const Duration(seconds: 25));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         _fail(response);
@@ -179,6 +179,16 @@ class ElevenApi {
       AppDiagnostics.instance.capture('API_REDE', e, stack);
       throw const ElevenApiException('Falha de conexão. Verifique sua internet.');
     }
+  }
+
+  /// Testa a chave digitada sem substituí-la no Keystore nem no modelo.
+  /// Compartilha o client injetável para permitir testes com resposta simulada.
+  Future<Subscription> checkCandidateKey(String candidate) async {
+    final checked = candidate.trim();
+    if (checked.isEmpty) throw const ElevenApiException('Informe uma chave API.');
+    final response = await _get('/v1/user/subscription', null, checked);
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return Subscription.fromJson(data);
   }
 
   Future<Subscription> checkSubscription() async {
@@ -221,6 +231,7 @@ class ElevenApi {
   }) async {
     final query = <String, String>{
       'language': language,
+      if (language == 'pt') 'locale': 'pt-BR',
       'sort': 'usage_character_count_1y',
       'page_size': '10',
       'page': '0',

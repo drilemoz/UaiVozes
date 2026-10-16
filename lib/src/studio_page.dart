@@ -72,6 +72,18 @@ class _StudioPageState extends State<StudioPage> {
       notice(context, 'O texto deve ter no máximo 5.000 caracteres.');
       return;
     }
+    if (widget.model.confirmCreditsBeforeGenerate) {
+      final estimate = content.runes.length;
+      final remaining = widget.model.subscription?.remaining;
+      final approved = await confirmSheet(context,
+        title: 'Confirmar geração de áudio',
+        message: 'Este texto tem $estimate caracteres. Com o modelo Eleven Multilingual v2, o consumo estimado é de aproximadamente $estimate créditos (referência de 1 por caractere). '
+          'A cobrança efetiva depende das condições da ElevenLabs. '
+          '${remaining == null ? 'Saldo não disponível na consulta atual.' : 'Saldo informado pela API: $remaining.'} '
+          'Deseja gerar e salvar o áudio?',
+        action: 'Gerar áudio');
+      if (!approved || !mounted) return;
+    }
     setState(() => generating = true);
     try {
       final Uint8List bytes = await widget.model.api.synthesize(voiceId: voice.id, text: content);

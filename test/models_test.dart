@@ -21,6 +21,14 @@ void main() {
     expect(v.annualCharacters, 1234);
   });
 
+  test('Categorias conhecidas são traduzidas para português', () {
+    final v = Voice.fromJson({
+      'voice_id': 'v', 'name': 'Will - Deep and Smooth',
+      'labels': {'use_case': 'narrative_story', 'accent': 'brazilian'},
+    });
+    expect(v.summary, 'Narração • Brasileiro');
+  });
+
   test('Biblioteca ignora registros inválidos', () {
     expect(decodeAudioRecords('não é JSON'), isEmpty);
     expect(decodeAudioRecords('[{"id":"a","path":"/data/test.mp3"}]'), hasLength(1));

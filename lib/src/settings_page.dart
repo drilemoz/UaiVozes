@@ -8,6 +8,8 @@ import 'eleven_api.dart';
 import 'diagnostics.dart';
 import 'diagnostics_page.dart';
 import 'ui.dart';
+import 'key_buttons.dart';
+import 'key_transfer.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.model, required this.showChanges, required this.showWizard});
@@ -98,10 +100,9 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => testing = true);
     updateFeedback('Testando conexão com a ElevenLabs…');
     try {
-      if (widget.model.key != keyController.text.trim()) await widget.model.setKey(keyController.text);
-      final data = await widget.model.testKey();
+      final data = await widget.model.api.checkCandidateKey(keyController.text.trim());
       AppDiagnostics.instance.info('API_TESTE', 'Conexão validada.');
-      updateFeedback('Conexão válida! Plano: ${data.tier}.');
+      updateFeedback('Conexão válida! Plano: ${data.tier}. Use Guardar para salvar.');
     } catch (e, stack) {
       AppDiagnostics.instance.capture('API_TESTE', e, stack);
       updateFeedback('Falha ao testar: ${friendlyError(e)}.', error: true);
@@ -130,6 +131,40 @@ class _SettingsPageState extends State<SettingsPage> {
       action: 'Copiar chave')) return;
     await Clipboard.setData(ClipboardData(text: keyController.text.trim()));
     if (mounted) notice(context, 'Chave copiada.');
+  }
+
+  Future<void> importKey() async {
+    try {
+      final imported = await KeyTransfer.importFromDocument();
+      if (!mounted || imported == null) return;
+      keyController.text = imported;
+      updateFeedback('Chave importada. Use Guardar para salvar.');
+    } catch (_) {
+      AppDiagnostics.instance.info('CHAVE_IMPORTAR', 'Não foi possível importar o arquivo selecionado.');
+      updateFeedback('Arquivo não aceito. Use TXT/ENV com uma chave.', error: true);
+    }
+  }
+
+  Future<void> exportKey() async {
+    final saved = widget.model.key;
+    if (saved.isEmpty) {
+      updateFeedback('Guarde sua chave antes de exportar.', error: true);
+      return;
+    }
+    final approved = await confirmSheet(context,
+      title: 'Exportar chave secreta?',
+      message: 'O arquivo TXT será salvo SEM criptografia. Quem tiver acesso ao arquivo poderá usar seus créditos. Escolha um local seguro e apague cópias desnecessárias.',
+      action: 'Escolher local');
+    if (!approved || !mounted) return;
+    try {
+      final exported = await KeyTransfer.exportToDocument(saved);
+      if (mounted) updateFeedback(exported
+        ? 'Chave exportada no local selecionado. Proteja o arquivo.'
+        : 'Exportação cancelada.');
+    } catch (_) {
+      AppDiagnostics.instance.info('CHAVE_EXPORTAR', 'Falha no seletor de documentos.');
+      if (mounted) updateFeedback('Não foi possível exportar a chave.', error: true);
+    }
   }
 
   Widget header(BuildContext context, String title) => SectionTitle(title);
@@ -162,27 +197,23 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 9),
-          Wrap(spacing: 4, runSpacing: 5, children: [
-            TextButton.icon(onPressed: pasteKey, icon: const Icon(Icons.content_paste_rounded), label: const Text('Colar')),
-            TextButton.icon(onPressed: copyKey, icon: const Icon(Icons.copy_rounded), label: const Text('Copiar')),
-            TextButton.icon(onPressed: removeKey, icon: const Icon(Icons.delete_outline_rounded), label: const Text('Apagar')),
-            TextButton.icon(onPressed: () async {
+          KeyActionsRow(busy: testing || saving,
+            paste: () { pasteKey(); }, test: () { testKey(); }, save: () { saveKey(); },
+            getKey: () async {
               final ok = await openElevenApiKeys();
               if (!ok) updateFeedback('Não foi possível abrir o navegador.', error: true);
-            }, icon: const Icon(Icons.open_in_new_rounded), label: const Text('Obter chave API')),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: OutlinedButton(
-              onPressed: testing ? null : testKey,
-              child: Text(testing ? 'Verificando…' : 'Testar API'),
-            )),
-            const SizedBox(width: 10),
-            Expanded(child: FilledButton(
-              onPressed: saving ? null : saveKey,
-              child: Text(saving ? 'Salvando…' : 'Salvar chave'),
-            )),
-          ]),
+            }),
+          const SizedBox(height: 4),
+          SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+            TextButton.icon(onPressed: importKey, icon: const Icon(Icons.file_open_outlined, size: 19),
+              label: const Text('Importar')),
+            TextButton.icon(onPressed: exportKey, icon: const Icon(Icons.save_alt_outlined, size: 19),
+              label: const Text('Exportar')),
+            TextButton.icon(onPressed: copyKey, icon: const Icon(Icons.copy_outlined, size: 19),
+              label: const Text('Copiar')),
+            TextButton.icon(onPressed: removeKey, icon: const Icon(Icons.delete_outline_rounded, size: 19),
+              label: const Text('Apagar')),
+          ])),
           if (feedback.isNotEmpty) ...[
             const SizedBox(height: 12),
             InlineFeedback(message: feedback, isError: feedbackError),
@@ -233,6 +264,15 @@ class _SettingsPageState extends State<SettingsPage> {
             }, style: theme.textTheme.bodySmall),
           ],
         )),
+        header(context, 'Geração de áudio'),
+        UaiVozesCard(child: SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.toll_outlined),
+          title: const Text('Confirmar créditos antes de gerar'),
+          subtitle: const Text('Mostra a estimativa e pede autorização antes de consumir créditos.'),
+          value: widget.model.confirmCreditsBeforeGenerate,
+          onChanged: widget.model.setConfirmCredits,
+        )),
         header(context, 'Aplicativo'),
         UaiVozesCard(child: Column(children: [
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.auto_awesome_rounded),
@@ -244,7 +284,7 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: const Icon(Icons.chevron_right_rounded), onTap: widget.showWizard),
           const Divider(),
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('Sobre o Uai, Vozes'), subtitle: const Text('Versão, histórico e doação Pix'),
+            title: const Text('Sobre o Uai Vozes'), subtitle: const Text('Versão, histórico e doação Pix'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (ctx) => AboutPage(model: widget.model, showChanges: widget.showChanges))),
@@ -256,6 +296,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.5': [
+    'Nome Uai Vozes sem vírgula em toda a interface e nos metadados.',
+    'API: botões em linha, importação/exportação TXT e confirmação de chave não salva.',
+    'Prévia de créditos opcional e vozes em português no assistente inicial.',
+  ],
   '0.1.0-alpha.4': [
     'Consumo de assinatura no Estúdio, com consulta à API e estimativa do texto.',
     'Tela Conta ElevenLabs com plano, limites, vagas de voz e dados autorizados.',
@@ -267,7 +312,7 @@ const releaseNotes = <String, List<String>>{
     'Diagnóstico local de erros com copiar, exportar e fechar, sem expor a chave.',
   ],
   '0.1.0-alpha.2': [
-    'Novo nome Uai, Vozes e identificador Android com.drilemoz.uaivozes.',
+    'Novo nome Uai Vozes e identificador Android com.drilemoz.uaivozes.',
     'Corrigida análise do Flutter: seletores de tema migrados para RadioGroup.',
     'Ícone do launcher usa o microfone oficial do Android, sem imagem extra.',
   ],
@@ -322,16 +367,16 @@ class AboutPage extends StatelessWidget {
     final theme = Theme.of(context);
     final lastThree = releaseNotes.keys.take(3).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Sobre o Uai, Vozes')),
+      appBar: AppBar(title: const Text('Sobre o Uai Vozes')),
       body: SafeArea(child: ListView(padding: const EdgeInsets.all(18), children: [
         UaiVozesCard(child: Column(children: [
           CircleAvatar(radius: 35, backgroundColor: theme.colorScheme.primaryContainer,
             child: const Icon(Icons.graphic_eq_rounded, size: 35)),
           const SizedBox(height: 12),
-          Text('Uai, Vozes', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text('Uai Vozes', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
           Text('Versão ${AppModel.version} • code ${AppModel.versionCode}'),
           const SizedBox(height: 9),
-          const Text('Uai, Vozes: estúdio de áudio com tecnologia ElevenLabs, desenvolvido em Flutter.', textAlign: TextAlign.center),
+          const Text('Uai Vozes: estúdio de áudio com tecnologia ElevenLabs, desenvolvido em Flutter.', textAlign: TextAlign.center),
         ])),
         const SectionTitle('Últimas três alterações'),
         ...lastThree.map((version) => Padding(

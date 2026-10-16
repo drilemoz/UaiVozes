@@ -101,7 +101,7 @@ class AppDiagnostics extends ChangeNotifier {
   }
 
   String report({String version = 'desconhecida'}) {
-    final out = StringBuffer('Uai, Vozes | Diagnóstico local\n')
+    final out = StringBuffer('Uai Vozes | Diagnóstico local\n')
       ..writeln('Versão: $version')
       ..writeln('Gerado: ${DateTime.now().toIso8601String()}')
       ..writeln('Registros: ${_entries.length}')

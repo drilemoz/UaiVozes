@@ -73,7 +73,7 @@ class UsagePanel extends StatelessWidget {
         const Divider(height: 18),
         Text('Estimativa local neste mês: ${_digits(model.localGeneratedCharacters)} caracteres',
           style: const TextStyle(fontWeight: FontWeight.w700)),
-        Text('Somente gerações feitas no Uai, Vozes desde '
+        Text('Somente gerações feitas no Uai Vozes desde '
           '${model.localTrackingSince == null ? 'a instalação' : _dateTime(model.localTrackingSince!)}. '
           'Não inclui uso em outros aparelhos nem informa créditos exatos.',
           style: theme.textTheme.bodySmall),

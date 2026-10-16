@@ -1,18 +1,10 @@
-# Uai, Vozes v0.04 · 0.1.0-alpha.4 (versionCode 4)
+# Uai Vozes v0.05 · 0.1.0-alpha.5 (versionCode 5)
 
-## Novidades
+- Layout compacto das ações Colar, Testar, Guardar e Obter chave nas duas telas.
+- Importar chave TXT/ENV no assistente e Ajustes; Exportar TXT nas Configurações com confirmação sobre arquivo não criptografado.
+- Testar não salva a chave; wizard exige salvar antes de avançar e carrega vozes em português ao entrar na segunda etapa.
+- Removido fallback automático para vozes de outros idiomas; ranking pt usa locale pt-BR.
+- Prévia aproximada de créditos antes de gerar MP3, habilitável/desabilitável em Ajustes.
+- Nome Uai Vozes sem vírgula; identificador Android preservado para manter compatibilidade das instalações anteriores.
 
-- Consumo consultável no **Estúdio**, com contagem e limite disponíveis pela API da ElevenLabs, botão atualizar e estimativa de caracteres do texto e somatório local do mês (desde o início do monitoramento).
-- **Ajustes → Conta ElevenLabs**: dados de usuário permitidos pela chave, plano, status, limites, vagas de voz e próxima renovação.
-- Tela **O que mudou?** é exibida antes do assistente inicial após instalar ou atualizar.
-- Explorar vozes: filtro de favoritas agora é um ícone; sem botão redundante que quebre a linha.
-- **Branco, AMOLED e Sistema** lado a lado em Ajustes.
-- Componentes internos reorganizados para reduzir duplicação.
-
-## Consumo e privacidade
-
-A API disponibiliza contagens e limites do ciclo da assinatura, não um conversor universal de caracteres para créditos. O texto do editor apresenta referência aproximada, nunca cobrança exata. Dados da conta podem exigir permissão **User: Read**. Sem acesso, o aplicativo informa limitação e preserva as demais funções.
-
-## APK
-
-O GitHub Actions deve produzir `Uai-Vozes-v0.04.apk` separadamente do ZIP de fontes. O APK não foi compilado neste ambiente; análise e testes Flutter precisam ser executados pelo workflow.
+APK esperado: `Uai-Vozes-v0.05.apk` (fora do ZIP no workflow). Ainda não compilado localmente.

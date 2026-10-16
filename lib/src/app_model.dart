@@ -12,8 +12,8 @@ import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.4';
-  static const versionCode = 4;
+  static const version = '0.1.0-alpha.5';
+  static const versionCode = 5;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -26,6 +26,7 @@ class AppModel extends ChangeNotifier {
   String language = 'pt';
   String draft = '';
   String lastSeenVersion = '';
+  bool confirmCreditsBeforeGenerate = true;
   Voice? selectedVoice;
   Subscription? subscription;
   ElevenAccount? account;
@@ -56,6 +57,7 @@ class AppModel extends ChangeNotifier {
     language = _prefs?.getString('language') ?? 'pt';
     draft = _prefs?.getString('draft') ?? '';
     lastSeenVersion = _prefs?.getString('seen_version') ?? '';
+    confirmCreditsBeforeGenerate = _prefs?.getBool('confirm_credits') ?? true;
     localUsageMonth = _prefs?.getString('local_usage_month') ?? '';
     localGeneratedCharacters = _prefs?.getInt('local_usage_characters') ?? 0;
     localTrackingSince = DateTime.tryParse(_prefs?.getString('local_usage_start') ?? '');
@@ -175,6 +177,12 @@ class AppModel extends ChangeNotifier {
       AppDiagnostics.instance.capture('CONSUMO_LOCAL_SALVAR', error, stack);
       // A falha desta estimativa não deve impedir salvar um áudio pago.
     }
+    notifyListeners();
+  }
+
+  Future<void> setConfirmCredits(bool value) async {
+    confirmCreditsBeforeGenerate = value;
+    await _prefs?.setBool('confirm_credits', value);
     notifyListeners();
   }
 

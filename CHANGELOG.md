@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 0.1.0-alpha.5+5 · 16/10/2026
+
+- Nome público corrigido para **Uai Vozes** (sem vírgula). Identificador Android **preservado**: `com.drilemoz.uaivozes`, para permitir atualização sobre as versões anteriores com certificado igual.
+- Linha compacta Colar / Testar / Guardar / Obter chave nas duas telas; importação TXT/ENV e exportação TXT com confirmação explícita de segredo não criptografado usando Storage Access Framework nativo, sem plugin Flutter adicional.
+- Testar chave não salva mais automaticamente. Assistente bloqueia o avanço se a chave digitada ainda não foi guardada, oferecendo salvar e continuar.
+- Segunda etapa do wizard carrega vozes portuguesas de `GET /v2/voices?language=pt`; ranking de pt inclui filtro `locale=pt-BR`. Fallback automático para inglês removido.
+- Metadados simples traduzidos para português, com preservação dos nomes oficiais de vozes.
+- Aviso opcional antes de sintetizar áudio, com caracteres e estimativa de créditos para Multilingual v2; preferência ativada por padrão, controlável em Ajustes.
+- Versão, workflow, notas de atualização, metadados e testes sincronizados. Compilação Gradle/Flutter e teste de SAF Android pendentes.
+
 ## 0.1.0-alpha.4+4 · 16/10/2026
 
 - Estúdio: indicador consultável de uso/limite do período ao lado do título, atualização da assinatura e referência aproximada de caracteres do texto antes de gerar e contador local do mês desde o início do acompanhamento. Não confunde contagem de caracteres com créditos exatos.
@@ -20,7 +30,7 @@
 
 ## 0.1.0-alpha.2+2 · 16/10/2026
 
-- Renomeado para **Uai, Vozes**, pacote Flutter `uaivozes`, applicationId `com.drilemoz.uaivozes` e metadados sincronizados.
+- Renomeado para **Uai Vozes**, pacote Flutter `uaivozes`, applicationId `com.drilemoz.uaivozes` e metadados sincronizados.
 - Corrigidos os seis avisos de Flutter `deprecated_member_use` em Configurações, substituindo propriedades obsoletas dos `RadioListTile` por `RadioGroup<ThemeMode>`.
 - Ícone de launcher agora utiliza `@android:drawable/ic_btn_speak_now`, recurso oficial do Android, sem recursos extras.
 - Workflow renomeado e APK ARM64 `Uai-Vozes-v0.02.apk` exportado como artifact independente; release opcional.
@@ -32,4 +42,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.5+5. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.6+6. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

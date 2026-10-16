@@ -40,7 +40,7 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
         AppDiagnostics.instance.report(version: AppModel.version), flush: true);
       // Compartilhamento nativo: usuário escolhe onde salvar/enviar o TXT.
       await Share.shareXFiles([XFile(file.path, mimeType: 'text/plain')],
-        text: 'Diagnóstico local do Uai, Vozes');
+        text: 'Diagnóstico local do Uai Vozes');
     } catch (e, stack) {
       AppDiagnostics.instance.capture('DIAGNOSTICO_EXPORTAR', e, stack);
       if (mounted) notice(context, 'Não foi possível exportar o relatório.');

@@ -1,12 +1,21 @@
-# Uai, Vozes 🎙️
+# Uai Vozes 🎙️
 
-Uai, Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
+Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.4+4** · APK pretendido: **Uai-Vozes-v0.04.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.5+5** · APK pretendido: **Uai-Vozes-v0.05.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
-**ATENÇÃO:** o identificador Android mudou; este aplicativo é instalado separadamente do antigo Eleven. Os dados da instalação antiga não são migrados.
+**Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Alterações da alpha.5
+
+- Nome visível **Uai Vozes**, sem vírgula, inclusive launcher, telas e workflow. `com.drilemoz.uaivozes` já era o identificador correto e foi preservado para não quebrar atualizações.
+- Colar, Testar, Guardar e Obter chave na mesma linha, no wizard e em Ajustes; Importar no wizard e Importar/Exportar nas Configurações.
+- **Testar não salva a chave**. Caso o usuário tente avançar com uma chave diferente da salva, o assistente solicita autorização para guardar, bloqueando o avanço se cancelar ou falhar.
+- Importação/exportação por documentos do Android (TXT/ENV) sem biblioteca Flutter extra. Exportar exige confirmação porque o arquivo **não é criptografado**. A chave continua segura localmente enquanto não é exportada.
+- Assim que conclui a etapa da chave, o wizard pede vozes associadas a português pela API e exibe a lista; sem retorno, mostra indisponibilidade. A opção Top 10 pt usa `language=pt` e `locale=pt-BR`.
+- Confirmação opcional do gasto estimado antes de TTS, habilitada inicialmente e configurável em Ajustes. Estimativa de 1 crédito por caractere para o modelo padrão, sujeita à cobrança efetiva.
 
 ## Funcionalidades
 
@@ -35,10 +44,10 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.04.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.05.apk
 ```
 
-Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai, Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
+Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
 **Assinatura:** sem os quatro Secrets opcionais o template Flutter usa assinatura de desenvolvimento. Para atualizações instaláveis sobre versões anteriores, providencie keystore estável e secreta; veja `docs/GITHUB_MANAGER.md`.
 

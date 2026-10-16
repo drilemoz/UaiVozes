@@ -76,11 +76,27 @@ class Voice {
         'descriptive': style,
       };
 
+  /// Etiquetas de categorias traduzidas, sem modificar nomes oficiais de vozes.
+  static const _labelsPt = <String, String>{
+    'narrative_story': 'Narração', 'conversational': 'Conversa',
+    'characters_animation': 'Personagem', 'social_media': 'Redes sociais',
+    'educational': 'Educacional', 'advertisement': 'Publicidade',
+    'calm': 'Calma', 'excited': 'Animada', 'soft': 'Suave',
+    'casual': 'Descontraída', 'expressive': 'Expressiva',
+    'energetic': 'Enérgica', 'deep': 'Grave', 'brazilian': 'Brasileiro',
+    'portuguese': 'Português', 'american': 'Americano',
+    'neutral': 'Neutra', 'professional': 'Profissional',
+    'young': 'Jovem', 'female': 'Feminina', 'male': 'Masculina',
+  };
+
+  static String translateTag(String tag) => _labelsPt[tag.toLowerCase().trim()] ?? tag;
+
   String get summary {
     final parts = [useCase, style.isNotEmpty ? style : accent]
         .where((s) => s.trim().isNotEmpty)
-        .toList();
-    return parts.isEmpty ? (description.isEmpty ? category : description) : parts.join(' • ');
+        .map(translateTag).toList();
+    return parts.isEmpty ? (description.isEmpty ? translateTag(category) : description)
+        : parts.join(' • ');
   }
 }
 

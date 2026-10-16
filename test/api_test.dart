@@ -10,6 +10,7 @@ void main() {
     final api = ElevenApi(() async => 'segredo', client: MockClient((request) async {
       expect(request.url.path, '/v1/shared-voices');
       expect(request.url.queryParameters['language'], 'pt');
+      expect(request.url.queryParameters['locale'], 'pt-BR');
       expect(request.url.queryParameters['sort'], 'usage_character_count_1y');
       expect(request.url.queryParameters['descriptives'], 'calm');
       expect(request.headers['xi-api-key'], 'segredo');
@@ -20,6 +21,19 @@ void main() {
     final voices = await api.topTen(language: 'pt', descriptive: 'calm');
     expect(voices.length, 1);
     expect(voices.first.annualCharacters, 18);
+    api.dispose();
+  });
+
+  test('Testar chave candidata não usa a chave persistida', () async {
+    var reads = 0;
+    final api = ElevenApi(() async { reads++; return 'chave_persistida'; },
+      client: MockClient((request) async {
+        expect(request.headers['xi-api-key'], 'chave_teste');
+        return http.Response(jsonEncode({'tier': 'free', 'character_count': 0, 'character_limit': 10000}), 200);
+      }));
+    final result = await api.checkCandidateKey('chave_teste');
+    expect(result.tier, 'free');
+    expect(reads, 0);
     api.dispose();
   });
 

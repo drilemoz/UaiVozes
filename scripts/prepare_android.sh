@@ -17,6 +17,9 @@ if ! grep -Eq 'applicationId[[:space:]]*=[[:space:]]*"com.drilemoz.uaivozes"' an
   exit 1
 fi
 cp scripts/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+# Integração leve com o seletor de documentos do Android (sem plugin extra).
+mkdir -p android/app/src/main/kotlin/com/drilemoz/uaivozes
+cp scripts/android/MainActivity.kt android/app/src/main/kotlin/com/drilemoz/uaivozes/MainActivity.kt
 # O scaffold Flutter define minSdk/versionCode no Gradle a partir do pubspec.
 # Assinatura de produção opcional via Secrets; nunca persistir keystore no ZIP.
 if [[ -f android/app/build.gradle.kts && -n "${KEYSTORE_BASE64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then

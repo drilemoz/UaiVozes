@@ -9,6 +9,9 @@ import 'src/diagnostics.dart';
 import 'src/eleven_links.dart';
 import 'src/eleven_api.dart';
 import 'src/library_page.dart';
+import 'src/key_transfer.dart';
+import 'src/key_buttons.dart';
+import 'src/models.dart';
 import 'src/settings_page.dart';
 import 'src/studio_page.dart';
 import 'src/ui.dart';
@@ -43,7 +46,7 @@ class UaiVozesApp extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: model,
     builder: (ctx, _) => MaterialApp(
-      title: 'Uai, Vozes',
+      title: 'Uai Vozes',
       debugShowCheckedModeBanner: false,
       theme: uaiVozesTheme(Brightness.light),
       darkTheme: uaiVozesTheme(Brightness.dark),
@@ -140,6 +143,9 @@ class _WizardSheetState extends State<WizardSheet> {
   bool reveal = false;
   String feedback = '';
   bool feedbackError = false;
+  bool loadingVoices = false;
+  List<Voice> portugueseVoices = [];
+  String voiceFeedback = '';
   void updateFeedback(String value, {bool error = false}) {
     if (mounted) setState(() { feedback = value; feedbackError = error; });
   }
@@ -151,11 +157,11 @@ class _WizardSheetState extends State<WizardSheet> {
     super.dispose();
   }
 
-  Future<void> save() async {
-    if (busy) return;
+  Future<bool> save() async {
+    if (busy) return false;
     if (keyController.text.trim().isEmpty) {
       updateFeedback('Cole sua chave antes de guardar.', error: true);
-      return;
+      return false;
     }
     setState(() => busy = true);
     updateFeedback('Guardando chave…');
@@ -163,9 +169,11 @@ class _WizardSheetState extends State<WizardSheet> {
       await widget.model.setKey(keyController.text);
       AppDiagnostics.instance.info('CHAVE_API', 'Chave armazenada com sucesso.');
       updateFeedback('Chave guardada com segurança.');
+      return true;
     } catch (e, stack) {
       AppDiagnostics.instance.capture('CHAVE_GUARDAR', e, stack);
       updateFeedback('Não foi possível guardar a chave API.', error: true);
+      return false;
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -188,16 +196,73 @@ class _WizardSheetState extends State<WizardSheet> {
     setState(() => busy = true);
     updateFeedback('Testando conexão com a ElevenLabs…');
     try {
-      await widget.model.setKey(keyController.text);
-      final result = await widget.model.testKey();
+      final result = await widget.model.api.checkCandidateKey(keyController.text.trim());
       AppDiagnostics.instance.info('API_TESTE', 'Conexão validada.');
-      updateFeedback('Conexão válida! Plano: ${result.tier}.');
+      updateFeedback('Conexão válida! Plano: ${result.tier}. Toque em Guardar para salvar.');
     } catch (e, stack) {
       AppDiagnostics.instance.capture('API_TESTE', e, stack);
       updateFeedback('Falha ao testar: ${e is Exception ? friendlyError(e) : 'erro inesperado'}.', error: true);
     } finally {
       if (mounted) setState(() => busy = false);
     }
+  }
+
+  Future<void> importKey() async {
+    try {
+      final imported = await KeyTransfer.importFromDocument();
+      if (!mounted || imported == null) return;
+      keyController.text = imported;
+      updateFeedback('Chave importada. Use Guardar para salvar neste aparelho.');
+    } catch (e) {
+      updateFeedback('Não foi possível importar. Use arquivo TXT/ENV com uma chave.', error: true);
+    }
+  }
+
+  Future<void> loadPortugueseVoices() async {
+    if (loadingVoices) return;
+    setState(() { loadingVoices = true; voiceFeedback = ''; portugueseVoices = []; });
+    try {
+      final page = await widget.model.api.voices(language: 'pt');
+      if (!mounted) return;
+      setState(() {
+        portugueseVoices = page.voices;
+        if (page.voices.isEmpty) {
+          voiceFeedback = 'Nenhuma voz da sua conta foi retornada para português. Abra Explorar vozes para outras opções.';
+        }
+      });
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('ASSISTENTE_VOZES', e, stack);
+      if (mounted) setState(() => voiceFeedback = 'Falha ao carregar vozes em português. Confira sua conexão ou permissões.');
+    } finally {
+      if (mounted) setState(() => loadingVoices = false);
+    }
+  }
+
+  Future<void> nextStep() async {
+    if (busy || loadingVoices) return;
+    if (step == 3) { Navigator.pop(context); return; }
+    if (step == 0) {
+      final candidate = keyController.text.trim();
+      if (candidate.isEmpty) {
+        updateFeedback('Informe e guarde uma chave para avançar.', error: true);
+        return;
+      }
+      if (candidate != widget.model.key) {
+        final confirmed = await confirmSheet(context,
+          title: 'Chave ainda não guardada',
+          message: 'Você digitou ou importou uma chave API, mas não a salvou. Deseja guardar a chave com segurança antes de avançar?',
+          action: 'Guardar e continuar');
+        if (!confirmed || !mounted) return;
+        final saved = await save();
+        if (!saved || !mounted) return;
+      }
+      await widget.model.setLanguage('pt');
+      if (!mounted) return;
+      setState(() => step = 1);
+      unawaited(loadPortugueseVoices());
+      return;
+    }
+    setState(() => step++);
   }
 
   @override
@@ -245,23 +310,49 @@ class _WizardSheetState extends State<WizardSheet> {
                 icon: Icon(reveal ? Icons.visibility_off_outlined : Icons.visibility_outlined))),
           ),
           const SizedBox(height: 5),
-          Wrap(spacing: 8, children: [
-            TextButton.icon(onPressed: paste, icon: const Icon(Icons.content_paste), label: const Text('Colar')),
-            TextButton.icon(onPressed: busy ? null : save, icon: const Icon(Icons.shield_outlined), label: const Text('Guardar')),
-            TextButton.icon(onPressed: busy ? null : test, icon: const Icon(Icons.wifi_tethering), label: const Text('Testar')),
-            TextButton.icon(onPressed: () async {
+          KeyActionsRow(busy: busy,
+            paste: () { paste(); }, test: () { test(); }, save: () { save(); },
+            getKey: () async {
               final ok = await openElevenApiKeys();
               if (!ok) updateFeedback('Não foi possível abrir o navegador.', error: true);
-            }, icon: const Icon(Icons.open_in_new_rounded), label: const Text('Obter chave')),
-          ]),
+            }),
+          Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+            onPressed: busy ? null : importKey,
+            icon: const Icon(Icons.file_open_outlined, size: 19),
+            label: const Text('Importar chave TXT/ENV'),
+          )),
           if (feedback.isNotEmpty) ...[
             const SizedBox(height: 8),
             InlineFeedback(message: feedback, isError: feedbackError),
           ],
         ],
-        if (step == 1)
-          OutlinedButton.icon(onPressed: widget.onExplore, icon: const Icon(Icons.mic_rounded),
-            label: const Text('Abrir explorador de vozes')),
+        if (step == 1) ...[
+          const Align(alignment: Alignment.centerLeft,
+            child: Text('Vozes da conta • Português (Brasil)', style: TextStyle(fontWeight: FontWeight.w700))),
+          const SizedBox(height: 8),
+          if (loadingVoices) const CircularProgressIndicator(),
+          if (voiceFeedback.isNotEmpty) Text(voiceFeedback, textAlign: TextAlign.center),
+          if (portugueseVoices.isNotEmpty)
+            SizedBox(height: 215, child: ListView.builder(
+              itemCount: portugueseVoices.length, itemBuilder: (ctx, i) {
+                final voice = portugueseVoices[i];
+                final selected = widget.model.selectedVoice?.id == voice.id;
+                return ListTile(
+                  dense: true,
+                  title: Text(voice.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(voice.summary.isEmpty ? 'Voz multilíngue' : voice.summary,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: selected ? theme.colorScheme.primary : null),
+                  onTap: () { widget.model.pickVoice(voice); setState(() {}); },
+                );
+              },
+            )),
+          TextButton.icon(onPressed: loadPortugueseVoices,
+            icon: const Icon(Icons.refresh_rounded), label: const Text('Atualizar vozes')),
+          OutlinedButton.icon(onPressed: widget.onExplore,
+            icon: const Icon(Icons.mic_rounded), label: const Text('Explorar catálogo completo')),
+        ],
         if (step == 2)
           SegmentedButton<ThemeMode>(
             segments: const [
@@ -281,10 +372,7 @@ class _WizardSheetState extends State<WizardSheet> {
           const Spacer(),
           Text('Etapa ${step + 1} de 4', style: theme.textTheme.bodySmall),
           const Spacer(),
-          FilledButton(onPressed: () {
-            if (step == 3) Navigator.pop(context);
-            else setState(() => step++);
-          }, child: Text(step == 3 ? 'Concluir' : 'Próximo')),
+          FilledButton(onPressed: busy ? null : nextStep, child: Text(step == 3 ? 'Concluir' : 'Próximo')),
         ]),
       ])),
     ));

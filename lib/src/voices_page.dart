@@ -46,7 +46,6 @@ class _VoicesPageState extends State<VoicesPage> {
   bool loading = false;
   bool rankingMode = false;
   bool favoritesOnly = false;
-  bool usingLanguageFallback = false;
   String? error;
   String? playingId;
 
@@ -74,7 +73,6 @@ class _VoicesPageState extends State<VoicesPage> {
       loading = true;
       error = null;
       nextToken = null;
-      usingLanguageFallback = false;
       ownVoices.clear();
       ranking.clear();
     });
@@ -91,13 +89,9 @@ class _VoicesPageState extends State<VoicesPage> {
         if (!mounted) return;
         ranking.addAll(result);
       } else {
-        var result = await widget.model.api.voices(language: widget.model.language);
-        // Algumas vozes padrão são multilíngues mas não possuem rótulo de idioma.
-        // Fallback informado, sem atribuir idioma inexistente à voz.
-        if (result.voices.isEmpty && widget.model.language != 'all') {
-          result = await widget.model.api.voices();
-          usingLanguageFallback = true;
-        }
+        final result = await widget.model.api.voices(language: widget.model.language);
+        // Não misturar vozes de outros idiomas ao escolher Português.
+        // O filtro é aplicado pelo servidor; nomes próprios permanecem os oficiais.
         if (!mounted) return;
         ownVoices.addAll(result.voices);
         nextToken = result.nextToken;
@@ -115,7 +109,7 @@ class _VoicesPageState extends State<VoicesPage> {
     setState(() => loading = true);
     try {
       final result = await widget.model.api.voices(
-          language: usingLanguageFallback ? null : widget.model.language, token: nextToken);
+          language: widget.model.language, token: nextToken);
       if (!mounted) return;
       ownVoices.addAll(result.voices);
       nextToken = result.nextToken;
@@ -304,13 +298,9 @@ class _VoicesPageState extends State<VoicesPage> {
         ),
         Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text(
           rankingMode ? 'Classificação real por caracteres utilizados no último ano. Depende do acesso à Voice Library.'
-              : 'Vozes retornadas pela sua conta ElevenLabs. Toque numa voz para usá-la.',
+              : 'Vozes retornadas pela API para o idioma selecionado. Nomes oficiais podem estar em inglês; categorias são traduzidas.',
           style: theme.textTheme.bodySmall,
         )),
-        if (usingLanguageFallback && !rankingMode && widget.model.key.isNotEmpty)
-          Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(
-            'Não há vozes marcadas com esse idioma. Exibindo vozes da conta, que podem ser multilíngues.',
-            style: theme.textTheme.bodySmall)),
         if (widget.model.key.isEmpty)
           EmptyState(icon: Icons.key_rounded, title: 'Conecte sua conta',
               description: 'É necessário configurar uma chave API para explorar vozes.',
@@ -322,7 +312,7 @@ class _VoicesPageState extends State<VoicesPage> {
         else if (visible.isEmpty && !loading)
           EmptyState(icon: Icons.mic_off_outlined, title: 'Nenhuma voz encontrada',
               description: rankingMode ? 'Não há ranking acessível para esse idioma/filtro.'
-                  : 'Experimente outra categoria, idioma ou termo de busca.',
+                  : 'A conta não retornou vozes neste idioma. Experimente Top 10 ou outro idioma; não foram adicionadas vozes em inglês como substituição.',
               action: OutlinedButton(onPressed: () {searchController.clear(); setState(() { category = 'all'; voiceStyle = 'all'; }); refresh();},
                   child: const Text('Limpar filtros')))
         else ...visible.map((voice) => Padding(
