@@ -68,6 +68,57 @@ void main() {
     api.dispose();
   });
 
+  test('TTS preserva motivo com resposta UTF-8 declarada', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'segredo', client: MockClient((request) async {
+      calls++;
+      return http.Response(jsonEncode({'detail': {
+        'status': 'voice_not_found', 'message': 'áudio não encontrado',
+      }}), 422, headers: {'content-type': 'application/json; charset=utf-8'});
+    }));
+    await expectLater(api.synthesize(voiceId: 'voz', text: 'teste'),
+      throwsA(isA<ElevenApiException>()
+        .having((e) => e.statusCode, 'HTTP', 422)
+        .having((e) => e.reason, 'motivo', 'voice_not_found')));
+    expect(calls, 1);
+    api.dispose();
+  });
+
+  test('TTS não expõe motivo inesperado nem ecoa texto remoto', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'segredo', client: MockClient((request) async {
+      calls++;
+      return http.Response(jsonEncode({'detail': {
+        'status': 'segredo_usuario', 'message': 'texto privado',
+      }}), 422);
+    }));
+    try {
+      await api.synthesize(voiceId: 'voz', text: 'teste');
+      fail('Era esperado HTTP 422');
+    } on ElevenApiException catch (e) {
+      expect(e.statusCode, 422);
+      expect(e.reason, isNull);
+      expect(e.toString(), isNot(contains('segredo_usuario')));
+      expect(e.toString(), isNot(contains('texto privado')));
+    }
+    expect(calls, 1);
+    api.dispose();
+  });
+
+  test('TTS mantém HTTP e uma única chamada em resposta inválida', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'segredo', client: MockClient((request) async {
+      calls++;
+      return http.Response('<html>erro privado</html>', 422);
+    }));
+    await expectLater(api.synthesize(voiceId: 'voz', text: 'teste'),
+      throwsA(isA<ElevenApiException>()
+        .having((e) => e.statusCode, 'HTTP', 422)
+        .having((e) => e.reason, 'motivo', isNull)));
+    expect(calls, 1);
+    api.dispose();
+  });
+
   test('TTS aceita MP3 com cabeçalho ID3', () async {
     final api = ElevenApi(() async => 'chave', client: MockClient((request) async {
       expect(request.url.path, '/v1/text-to-speech/voz');

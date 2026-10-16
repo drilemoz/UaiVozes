@@ -143,7 +143,15 @@ class ElevenApi {
     // pode ecoar partes do texto, metadados pessoais ou dados sensíveis.
     String? reason;
     try {
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      // Prefer UTF-8 (JSON padrão). Em respostas sem charset que contenham
+      // bytes Latin-1, o pacote http pode usar Latin-1 em Response.body.
+      // Um texto com acentos não deve impedir a leitura do código seguro.
+      Object? decoded;
+      try {
+        decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      } on FormatException {
+        decoded = jsonDecode(response.body);
+      }
       if (decoded is Map && decoded['detail'] is Map) {
         final raw = decoded['detail']['status'];
         const permitted = <String>{

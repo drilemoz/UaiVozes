@@ -1,11 +1,12 @@
-# Uai Vozes v0.13 · 0.1.0-alpha.13+13 (versionCode 13)
+# Uai Vozes v0.14 · 0.1.0-alpha.14+14 (versionCode 14)
 
-- Correção do workflow #12: removida importação redundante de `dart:typed_data` no Estúdio, que fazia o `flutter analyze` falhar por `unnecessary_import` com Flutter 3.47.7.
-- Mantidos editor de textos, catálogo de vozes, controle de créditos, geração ElevenLabs e biblioteca sem alteração comportamental.
-- Incluído teste Python de regressão para o import e sincronizados nomes, versão, workflow e notas.
+- Corrigido tratamento do motivo `voice_not_found` em HTTP 422 quando a resposta contém bytes Latin-1 sem charset declarado; tenta JSON UTF-8 primeiro e recorre a `Response.body` quando necessário.
+- Dados privados enviados em mensagens de erro nunca são incluídos em relatórios; somente motivos explicitamente permitidos pela aplicação podem ser expostos.
+- Mantidas trava global de geração, uma única solicitação TTS por ação, biblioteca, rascunhos, preferências e assinatura existente.
+- Três novos testes de regressão para UTF-8, motivos desconhecidos e respostas inválidas; teste anterior HTTP 422 preservado.
 
-**Assinatura Android:** usar exatamente os quatro Secrets existentes `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD`. Não há nova chave nem mudança do identificador `com.drilemoz.uaivozes`.
+**Assinatura Android:** utilize os mesmos quatro Secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD`. Identificador Android preservado: `com.drilemoz.uaivozes`. Nenhuma keystore foi gerada.
 
-**Distribuição:** código-fonte em ZIP separado; após compilação confirmada pelo GitHub Actions, o APK será publicado como `Uai-Vozes-v0.13.apk` no artifact `Uai-Vozes-v0.13-apk`.
+**Distribuição:** código-fonte em ZIP separado. No GitHub Actions, o APK ARM64 será publicado como `Uai-Vozes-v0.14.apk` no artifact `Uai-Vozes-v0.14-apk` somente após testes e compilação aprovados.
 
-**Validação:** o run #12 aprovou seis testes Python e a verificação estrutural, mas parou no analisador antes dos testes Flutter e do APK. A análise Flutter corrigida, os testes Flutter, a compilação e a instalação Android ainda precisam de confirmação no próximo run.
+**Validação:** o workflow #13 aprovou `flutter analyze`, 60 testes Flutter e a validação Python/estrutura, mas falhou em um teste HTTP 422 antes do build. A análise Flutter, os testes e a compilação da alpha.14 ainda precisam ser executados no CI; sem confirmação de APK nem teste em Android físico.

@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.14+14 · 16/10/2026
+
+- Workflow #13: `flutter analyze` aprovado (Flutter 3.47.7); `flutter test` concluiu com **60 testes aprovados e 1 falha**, em `test/api_test.dart:63`, antes da compilação APK.
+- Causa provável da falha: `http.Response` de teste com corpo contendo acento e sem charset explícito usa Latin-1 por padrão; `_fail` tentava somente `utf8.decode(response.bodyBytes)` e perdia o motivo permitido `voice_not_found` ao descartar a exceção de decodificação.
+- Corrigido `_fail` para tentar JSON UTF-8 primeiro e, se a leitura falhar, usar `response.body` (charset HTTP ou Latin-1 padrão). Preserva somente motivos da lista permitida; não registra corpo, texto, chave ou mensagens do servidor.
+- Três novos testes Flutter para erros HTTP 422 com UTF-8 explícito, motivo desconhecido e corpo inválido; o teste original de uma única chamada TTS permanece.
+- Versão, documentação, novidade no app e workflow atualizados para v0.14; certificado e quatro Secrets preservados. Flutter analyze/test da nova versão e compilação ARM64 permanecem pendentes no GitHub Actions.
+
 ## 0.1.0-alpha.13+13 · 16/10/2026
 
 - Corrigido o bloqueio do workflow #12 em `flutter analyze` causado por `unnecessary_import` em `lib/src/studio_page.dart:2` (importação redundante de `dart:typed_data`).
@@ -103,4 +111,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.14+14. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.15+15. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

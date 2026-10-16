@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.14': [
+    'Corrigida a leitura de códigos HTTP 422 com resposta em diferentes codificações.',
+    'Mensagens privadas da API continuam ocultas e não há nova tentativa automática de geração.',
+    'Regressões de UTF-8, respostas inválidas e proteção de dados cobertas por testes.',
+  ],
   '0.1.0-alpha.13': [
     'Corrigida a análise de código do Flutter: importação redundante removida do Estúdio.',
     'Compatibilidade com Flutter 3.47.7 mantida, sem alterar geração de áudio ou armazenamento.',

@@ -6,6 +6,7 @@
 - Em TODA alteração, incrementar versão sequencial e versionCode (pubspec, JSON, README, CHANGELOG, RELEASE_NOTES, docs/VERSIONING, notas na tela Sobre, workflow e arquivo APK).
 - Não inventar top 10 de vozes; sempre consultar o endpoint oficial ou mostrar falta de permissão/dados.
 - Não repetir chamada TTS automaticamente, pois pode consumir créditos duplicados.
+- Erros HTTP: tentar UTF-8 primeiro; permitir fallback de charset quando necessário, sem armazenar ou imprimir corpo remoto; somente motivos conhecidos da lista permitida. Manter regressões para respostas acentuadas sem charset (HTTP 422), JSON inválido e códigos inesperados.
 - Compilar APK separado do ZIP de código no artifact GitHub Actions e/ou Release.
 - Cobrir regressões de análise Flutter com testes de código-fonte quando possível; não declarar o lint aprovado até executar `flutter analyze`.
 - Validar flutter analyze, flutter test e build Android no GitHub Actions antes de afirmar APK testado.

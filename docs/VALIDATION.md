@@ -1,3 +1,20 @@
+# Validação da versão 0.1.0-alpha.14+14
+
+## Evidências do workflow #13, 16/10/2026
+
+- Flutter 3.47.7: `flutter analyze` aprovado, sem issues.
+- `flutter test`: 60 aprovados, 1 reprovado (`test/api_test.dart:63`): HTTP 422 com motivo esperado `voice_not_found`, encontrado `null`.
+- Higiene/estrutura e sete testes Python aprovados no workflow. Compilação ARM64 não iniciada nesse run.
+
+## Correção alpha.14
+
+- `lib/src/eleven_api.dart`: o parser de falha tenta UTF-8 primeiro; se a decodificação ou JSON falhar, consulta `response.body` respeitando a codificação do HTTP/fallback Latin-1.
+- Motivos continuam estritamente limitados à lista segura. Corpo de erro não é copiado para logs, diagnóstico ou UI; HTTP continua disponível mesmo quando JSON não pode ser extraído.
+- `test/api_test.dart` ganhou regressões para UTF-8 explícito, motivo fora da lista e corpo não JSON, sem repetir requisições TTS. O teste original que causou o erro foi preservado.
+- APK/testes Flutter alpha.14 ainda não executados neste ambiente. Confirmar `flutter analyze`, `flutter test`, `flutter build apk` e assinatura no GitHub Actions.
+
+---
+
 # Validação da versão 0.1.0-alpha.13+13
 
 ## Diagnóstico do workflow #12, 16/10/2026
