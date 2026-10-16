@@ -10,9 +10,9 @@ from pathlib import Path
 from source_hygiene import distribution_paths, prohibited_paths
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0-alpha.17"
-CODE = 17
-APK = "Uai-Vozes-v0.17.apk"
+VERSION = "0.1.0-alpha.18"
+CODE = 18
+APK = "Uai-Vozes-v0.18.apk"
 PACKAGE = "com.drilemoz.uaivozes"
 
 def content(path):

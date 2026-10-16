@@ -108,4 +108,44 @@ void main() {
     expect(voiceBrowseKey(language: 'pt', ranking: false, search: ' A '),
       voiceBrowseKey(language: 'pt', ranking: false, search: 'a'));
   });
+
+  test('Minhas vozes usa voice_type no endpoint oficial v2', () async {
+    var requests = 0;
+    final api = ElevenApi(() async => 'key-test', client: MockClient((request) async {
+      requests++;
+      expect(request.method, 'GET');
+      expect(request.url.path, '/v2/voices');
+      expect(request.url.queryParameters['voice_type'], 'saved');
+      return http.Response(jsonEncode({'voices':[], 'has_more':false}), 200);
+    }));
+    await api.voices(voiceType: 'saved');
+    expect(requests, 1);
+    api.dispose();
+  });
+
+  test('Top 10 encaminha filtros documentados ao catálogo público', () async {
+    final api = ElevenApi(() async => 'key-test', client: MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.path, '/v1/shared-voices');
+      expect(request.url.queryParameters['sort'], 'usage_character_count_1y');
+      expect(request.url.queryParameters['gender'], 'female');
+      expect(request.url.queryParameters['age'], 'young');
+      expect(request.url.queryParameters['accent'], 'brazilian');
+      expect(request.url.queryParameters['category'], 'professional');
+      expect(request.url.queryParameters['use_cases'], 'narrative_story');
+      return http.Response(jsonEncode({'voices':[]}),200);
+    }));
+    await api.topTen(language: 'pt', gender: 'female', age: 'young',
+      accent: 'brazilian', sharedCategory: 'professional', useCase: 'narrative_story');
+    api.dispose();
+  });
+
+  test('Cache distingue categoria pública e tipo de voz salvo', () {
+    final base = voiceBrowseKey(language: 'pt', ranking: false);
+    expect(voiceBrowseKey(language:'pt', ranking:false, voiceType:'saved'), isNot(base));
+    expect(voiceBrowseKey(language:'pt', ranking:true, sharedCategory:'professional'),
+      isNot(voiceBrowseKey(language:'pt',ranking:true)));
+  });
+
 }
+

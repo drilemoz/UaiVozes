@@ -1,4 +1,10 @@
-# Validação da versão 0.1.0-alpha.16+16
+# Validação da versão 0.1.0-alpha.18+18
+
+- Atualização da navegação e dos filtros API em `voices_page.dart` / `eleven_api.dart`, menu de exclusão confirmada, GET manual em lote até 10 vozes, e controle de estados inconclusivos sem confundir desconhecido com compatível.
+- Diagnóstico usa `DiagnosticExport.save` + `MainActivity.kt` por ACTION_CREATE_DOCUMENT, sem ShareSheet. Foram preservados Copiar, Excluir e o filtro Somente eventos de vozes.
+- Novos testes de contrato de API (filtros e remoção, com chamadas simuladas) e regressões Python de fonte. Executar `flutter analyze`, `flutter test` e build Android no GitHub Actions: SDK ausente no ambiente local.
+
+# Validação da versão 0.1.0-alpha.17+17
 
 ## Funcionalidade alpha.17: diagnósticos de voz
 

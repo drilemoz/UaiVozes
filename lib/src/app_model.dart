@@ -15,8 +15,8 @@ import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.17';
-  static const versionCode = 17;
+  static const version = '0.1.0-alpha.18';
+  static const versionCode = 18;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -288,6 +288,18 @@ class AppModel extends ChangeNotifier {
   void pickVoice(Voice voice) {
     selectedVoice = voice;
     _prefs?.setString('selected_voice', jsonEncode(voice.toJson()));
+    notifyListeners();
+  }
+
+  /// Remoção explícita de voz na API; não apaga áudios já gerados.
+  Future<void> voiceRemovedFromAccount(String voiceId) async {
+    if (selectedVoice?.id == voiceId) {
+      selectedVoice = null;
+      await _prefs?.remove('selected_voice');
+    }
+    if (favoriteIds.remove(voiceId)) {
+      await _prefs?.setStringList('favorites', favoriteIds.toList());
+    }
     notifyListeners();
   }
 

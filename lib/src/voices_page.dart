@@ -12,6 +12,28 @@ import 'voice_browse_cache.dart';
 import 'voice_access.dart';
 import 'voice_block_diagnostics.dart';
 
+const ownedVoiceTypes = <String, String>{
+  'all': 'Todos os tipos', 'saved': 'Salvas', 'personal': 'Pessoais',
+  'community': 'Comunidade', 'default': 'Padrão', 'workspace': 'Equipe',
+};
+
+const sharedVoiceCategories = <String, String>{
+  'all': 'Todas', 'professional': 'Profissional',
+  'famous': 'Celebridade', 'high_quality': 'Alta qualidade',
+};
+
+String accessFilterTitle(VoiceAccessFilter filter) => switch (filter) {
+  VoiceAccessFilter.all => 'Todas',
+  VoiceAccessFilter.compatible => 'Compatíveis com meu plano',
+  VoiceAccessFilter.restricted => 'Restritas',
+  VoiceAccessFilter.unknown => 'A confirmar',
+};
+
+String languageLabel(String code) => switch (code) {
+  'pt' => '🇧🇷 Português',
+  _ => languages[code] ?? code,
+};
+
 const voiceStyles = <String, String>{
   'all': 'Todos os estilos',
   'calm': 'Calma', 'expressive': 'Expressiva', 'soft': 'Suave',
@@ -54,6 +76,7 @@ class _VoicesPageState extends State<VoicesPage> {
   final List<Voice> ranking = [];
   final Map<String, Voice> verifiedVoices = {};
   final Set<String> checkingVoices = {};
+  final Set<String> bulkCheckedVoices = {};
   VoiceAccessFilter accessFilter = VoiceAccessFilter.all;
   Timer? searchDebounce;
   StreamSubscription<PlayerState>? playerStateSubscription;
@@ -62,6 +85,10 @@ class _VoicesPageState extends State<VoicesPage> {
   String gender = 'all';
   String age = 'all';
   String accent = 'all';
+  String sharedCategory = 'all';
+  String voiceType = 'all';
+  bool verifyingLoaded = false;
+  final Set<String> removingVoices = {};
   String? nextToken;
   bool loading = false;
   bool loadingMore = false;
@@ -112,6 +139,7 @@ class _VoicesPageState extends State<VoicesPage> {
       cache.clear(); // dados e detalhes de outra conta/idioma não são reutilizados.
       verifiedVoices.clear();
       checkingVoices.clear();
+      bulkCheckedVoices.clear();
       requestVersion++;
       previewVersion++;
       unawaited(previewPlayer.stop());
@@ -135,7 +163,8 @@ class _VoicesPageState extends State<VoicesPage> {
   String cacheKey([String? token]) => voiceBrowseKey(
     language: widget.model.language, ranking: rankingMode,
     search: searchController.text, category: category,
-    style: voiceStyle, gender: gender, age: age, accent: accent, token: token,
+    style: voiceStyle, gender: gender, age: age, accent: accent,
+    sharedCategory: sharedCategory, voiceType: voiceType, token: token,
   );
 
   Future<VoicePage> fetch({String? token, required int revision}) async {
@@ -152,6 +181,8 @@ class _VoicesPageState extends State<VoicesPage> {
         language: widget.model.language,
         useCase: category == 'all' ? null : category,
         descriptive: voiceStyle == 'all' ? null : voiceStyle,
+        gender: gender, age: age, accent: accent,
+        sharedCategory: sharedCategory,
       );
       page = VoicePage(items, null);
     } else {
@@ -159,6 +190,7 @@ class _VoicesPageState extends State<VoicesPage> {
         language: widget.model.language, token: token,
         search: searchController.text.trim(),
         gender: gender, age: age, accent: accent, useCase: category,
+        voiceType: voiceType,
       );
     }
     // Não reintroduzir dados da credencial anterior após uma troca de conta.
@@ -173,7 +205,7 @@ class _VoicesPageState extends State<VoicesPage> {
     final request = ++requestVersion;
     final activeKey = widget.model.key;
     final activeLanguage = widget.model.language;
-    if (force) { cache.clear(); verifiedVoices.clear(); checkingVoices.clear(); }
+    if (force) { cache.clear(); verifiedVoices.clear(); checkingVoices.clear(); bulkCheckedVoices.clear(); }
     setState(() {
       loading = true;
       loadingMore = false;
@@ -320,6 +352,136 @@ class _VoicesPageState extends State<VoicesPage> {
   VoiceAccessInfo accessFor(Voice voice) => evaluateVoiceAccess(voice,
       widget.model.subscription?.tier, publicLibrary: rankingMode);
 
+  /// Consulta apenas por ação explícita e somente a página de Minhas vozes.
+  /// Máximo de 10 GETs em sequência; nenhum pedido TTS nem repetição automática.
+  Future<void> verifyLoadedAccess() async {
+    if (verifyingLoaded || rankingMode || widget.model.key.isEmpty) return;
+    final pending = ownVoices.where((v) =>
+      !checkingVoices.contains(v.id) && !bulkCheckedVoices.contains(v.id) &&
+      accessFor(verifiedVoices[v.id] ?? v).state == VoiceAccess.unknown
+    ).take(10).toList();
+    if (pending.isEmpty) {
+      notice(context, 'Nenhuma voz pendente nesta página.');
+      return;
+    }
+    final key = widget.model.key;
+    final revision = requestVersion;
+    setState(() => verifyingLoaded = true);
+    var checked = 0;
+    for (final voice in pending) {
+      if (!mounted || widget.model.key != key || requestVersion != revision || rankingMode) break;
+      setState(() {
+        checkingVoices.add(voice.id);
+        bulkCheckedVoices.add(voice.id);
+      });
+      try {
+        final detail = await widget.model.api.voiceDetail(voice.id);
+        if (!mounted || widget.model.key != key || requestVersion != revision) break;
+        setState(() => verifiedVoices[voice.id] = mergeVoiceAccessMetadata(voice, detail));
+        checked++;
+      } on ElevenApiException catch (error) {
+        if (mounted && widget.model.key == key && requestVersion == revision) {
+          VoiceBlockDiagnostics.apiFailure(voice, widget.model.subscription?.tier,
+            error, publicLibrary: false, stage: VoiceCheckStage.detail);
+        }
+      } catch (error, stack) {
+        AppDiagnostics.instance.capture('VOZES_VERIFICAR_CARREGADAS', error, stack);
+      } finally {
+        if (mounted) setState(() => checkingVoices.remove(voice.id));
+      }
+    }
+    if (mounted) {
+      setState(() => verifyingLoaded = false);
+      if (widget.model.key == key && requestVersion == revision) {
+        notice(context, '$checked voz(es) consultada(s). Sem garantia de geração.');
+      }
+    }
+  }
+
+  /// Exclui exclusivamente por confirmação explícita do usuário e resposta da API.
+  Future<void> removeVoice(Voice voice) async {
+    if (rankingMode || removingVoices.contains(voice.id) || widget.model.key.isEmpty) return;
+    if (!voice.canRemoveFromAccount) {
+      notice(context, 'Voz padrão ou legada: não pode ser removida pela API.');
+      return;
+    }
+    final approved = await confirmSheet(context,
+      title: 'Remover voz da ElevenLabs?',
+      message: '“${voice.name}” será removida de Minhas vozes na conta ElevenLabs. '
+        'A ação pode ser irreversível. Os áudios MP3 já salvos no aparelho serão mantidos.',
+      action: 'Remover voz', destructive: true);
+    if (!approved || !mounted) return;
+    final key = widget.model.key;
+    setState(() => removingVoices.add(voice.id));
+    try {
+      await widget.model.api.deleteVoice(voice.id);
+      if (widget.model.key != key) return;
+      await widget.model.voiceRemovedFromAccount(voice.id);
+      cache.clear();
+      if (!mounted) return;
+      setState(() {
+        ownVoices.removeWhere((v) => v.id == voice.id);
+        verifiedVoices.remove(voice.id);
+      });
+      notice(context, 'Voz removida da conta. Seus áudios foram preservados.');
+      unawaited(refresh(force: true));
+    } catch (error, stack) {
+      if (error is ElevenApiException) {
+        VoiceBlockDiagnostics.apiFailure(voice, widget.model.subscription?.tier,
+          error, publicLibrary: false, stage: VoiceCheckStage.detail);
+      }
+      AppDiagnostics.instance.capture('VOZES_REMOVER', error, stack);
+      if (mounted) notice(context, friendlyError(error));
+    } finally {
+      if (mounted) setState(() => removingVoices.remove(voice.id));
+    }
+  }
+
+  Future<void> showVoiceHelp() async {
+    final isTopTen = rankingMode;
+    await showModalBottomSheet<void>(context: context, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(isTopTen ? 'Como funciona o Top 10?' : 'Como funciona Minhas vozes?',
+            style: Theme.of(ctx).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Text(isTopTen
+            ? 'Ranking real de uso nos últimos 12 meses pela API da biblioteca compartilhada. '
+              'Ao aplicar filtros, o Top 10 passa a representar as 10 mais usadas dentro dos critérios. '
+              'A busca por nome é feita apenas nestas dez vozes. '
+              'A biblioteca pública pode exigir assinatura paga.'
+            : 'Minhas vozes mostra o catálogo autorizado para a sua conta, com busca e '
+              'paginação pela API. Para remover, use o menu ⋮ de uma voz. '
+              'Vozes padrão ou legadas podem não permitir exclusão.'),
+          const SizedBox(height: 16),
+          Align(alignment: Alignment.centerRight, child: FilledButton(
+            onPressed: () => Navigator.pop(ctx), child: const Text('Entendi'))),
+        ]),
+      )));
+  }
+
+  Future<void> showAccessHelp() async {
+    await showModalBottomSheet<void>(context: context, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Compatibilidade com meu plano', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          const Text('A API não oferece filtro direto por assinatura. Uma voz só aparece como '
+            'compatível quando os detalhes listam expressamente seu plano em available_for_tiers. '
+            'Sem esse campo, a classificação é A confirmar, mesmo em Minhas vozes. '
+            'Acesso confirmado não garante saldo, modelo habilitado nem síntese gratuita.'),
+          const SizedBox(height: 14),
+          const Text('Use “Verificar vozes carregadas” para consultar até 10 detalhes por toque. '
+            'A operação usa GET, não gera áudio e não faz novas requisições TTS.'),
+          const SizedBox(height: 14),
+          Align(alignment: Alignment.centerRight, child: FilledButton(
+            onPressed: () => Navigator.pop(ctx), child: const Text('Entendi'))),
+        ]),
+      )));
+  }
+
   Future<void> select(Voice voice) async {
     final access = accessFor(voice);
     if (access.isRestricted) {
@@ -332,7 +494,7 @@ class _VoicesPageState extends State<VoicesPage> {
             Text(access.label, style: Theme.of(ctx).textTheme.titleLarge),
             const SizedBox(height: 10), Text(access.details),
             const SizedBox(height: 10),
-            const Text('Bloqueio registrado em Sobre > Diagnóstico local, '
+            const Text('Bloqueio registrado em Ajustes > Diagnóstico local, '
               'sem nome nem ID original da voz.'),
             const SizedBox(height: 16), FilledButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('Entendi')),
@@ -379,8 +541,6 @@ class _VoicesPageState extends State<VoicesPage> {
       final query = searchController.text.trim().toLowerCase();
       if (query.isNotEmpty &&
           !'${voice.name} ${voice.description} ${voice.summary}'.toLowerCase().contains(query)) return false;
-      if (gender != 'all' && voice.gender.toLowerCase() != gender) return false;
-      if (accent != 'all' && voice.accent.toLowerCase() != accent) return false;
     } else if (voiceStyle != 'all') {
       // Estilo é um filtro local: não presumir metadados que a API não fornece.
       if (!'${voice.style} ${voice.description}'.toLowerCase().contains(voiceStyle)) return false;
@@ -408,22 +568,40 @@ class _VoicesPageState extends State<VoicesPage> {
   }
 
   Future<void> showFilters() async {
+    final initialApiFilters = '$category|$voiceStyle|$gender|$age|$accent|$sharedCategory|$voiceType';
     await showModalBottomSheet<void>(
       context: context, showDragHandle: true, isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(builder: (ctx, updateSheet) => SafeArea(
-        child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: FractionallySizedBox(heightFactor: .82, child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Filtros de voz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 21)),
+            Text(rankingMode ? 'Filtros do Top 10' : 'Filtros das minhas vozes',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 21)),
+            const SizedBox(height: 6),
+            Text(rankingMode
+              ? 'Filtros de catálogo compartilhado permitidos pela API. O resultado é o Top 10 dentro dos critérios.'
+              : 'Os campos abaixo são enviados à API, exceto estilo e compatibilidade, avaliados nas vozes carregadas.',
+              style: Theme.of(ctx).textTheme.bodySmall),
+            _filterRow('Compatibilidade', {
+              for (final filter in VoiceAccessFilter.values)
+                filter.name: accessFilterTitle(filter),
+            }, accessFilter.name,
+              (v) => accessFilter = VoiceAccessFilter.values.firstWhere((e) => e.name == v), updateSheet),
+            if (!rankingMode) _filterRow('Tipo de voz na conta',
+              ownedVoiceTypes, voiceType, (v) => voiceType = v, updateSheet),
+            if (rankingMode) _filterRow('Categoria da biblioteca',
+              sharedVoiceCategories, sharedCategory, (v) => sharedCategory = v, updateSheet),
             _filterRow('Finalidade', voiceCategories, category, (v) => category = v, updateSheet),
-            _filterRow('Estilo (descrição)', voiceStyles, voiceStyle, (v) => voiceStyle = v, updateSheet),
+            _filterRow('Estilo / descrição', voiceStyles, voiceStyle, (v) => voiceStyle = v, updateSheet),
             _filterRow('Gênero', voiceGenders, gender, (v) => gender = v, updateSheet),
-            if (!rankingMode) _filterRow('Faixa etária', voiceAges, age, (v) => age = v, updateSheet),
+            _filterRow('Faixa etária', voiceAges, age, (v) => age = v, updateSheet),
             _filterRow('Sotaque', voiceAccents, accent, (v) => accent = v, updateSheet),
             const SizedBox(height: 16),
             Row(children: [
               OutlinedButton(onPressed: () {
                 setState(() { category = 'all'; voiceStyle = 'all'; gender = 'all';
-                  age = 'all'; accent = 'all'; });
+                  age = 'all'; accent = 'all'; sharedCategory = 'all'; voiceType = 'all';
+                  accessFilter = VoiceAccessFilter.all; });
                 Navigator.pop(ctx);
               }, child: const Text('Limpar')),
               const SizedBox(width: 12),
@@ -431,10 +609,13 @@ class _VoicesPageState extends State<VoicesPage> {
                 child: const Text('Aplicar filtros'))),
             ]),
           ]),
-        ),
+        )),
       )),
     );
-    if (mounted) unawaited(refresh());
+    if (!mounted) return;
+    final finalApiFilters = '$category|$voiceStyle|$gender|$age|$accent|$sharedCategory|$voiceType';
+    if (finalApiFilters != initialApiFilters) unawaited(refresh());
+    else setState(() {});
   }
 
   @override
@@ -444,100 +625,101 @@ class _VoicesPageState extends State<VoicesPage> {
         .map((voice) => verifiedVoices[voice.id] ?? voice).toList();
     final visible = allLoaded.where(matches).toList();
     final filterActive = category != 'all' || voiceStyle != 'all' || gender != 'all' ||
-        age != 'all' || accent != 'all' || accessFilter != VoiceAccessFilter.all;
+        age != 'all' || accent != 'all' || sharedCategory != 'all' || voiceType != 'all' || accessFilter != VoiceAccessFilter.all;
     return SafeArea(child: RefreshIndicator(
       onRefresh: () => refresh(force: true),
       child: ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 26), children: [
         Row(children: [
-          Expanded(child: Text('Explorar vozes', style: theme.textTheme.headlineMedium
+          Expanded(child: Text('Explorar vozes', style: theme.textTheme.titleLarge
               ?.copyWith(fontWeight: FontWeight.w800))),
           IconButton(
             icon: Icon(favoritesOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               color: favoritesOnly ? theme.colorScheme.primary : null),
             tooltip: favoritesOnly ? 'Mostrar todas as vozes' : 'Mostrar só favoritas',
-            isSelected: favoritesOnly,
             onPressed: () => setState(() => favoritesOnly = !favoritesOnly)),
-          IconButton(icon: Icon(Icons.tune_rounded,
-              color: filterActive ? theme.colorScheme.primary : null),
-            tooltip: 'Filtrar vozes', onPressed: showFilters),
+          IconButton(icon: const Icon(Icons.help_outline_rounded, size: 21),
+            tooltip: rankingMode ? 'Entenda o Top 10' : 'Entenda Minhas vozes',
+            onPressed: showVoiceHelp),
         ]),
-        const SizedBox(height: 14),
+        const SizedBox(height: 9),
         TextField(controller: searchController, onChanged: onSearch,
           decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded),
-            hintText: rankingMode ? 'Buscar dentro das 10 vozes…' : 'Buscar em todas as vozes…',
+            hintText: rankingMode ? 'Buscar nas 10 vozes…' : 'Buscar vozes da conta…',
             suffixIcon: searchController.text.isEmpty ? null : IconButton(
               icon: const Icon(Icons.clear_rounded), tooltip: 'Limpar busca',
               onPressed: () {searchController.clear(); onSearch('');}),
           )),
-        const SizedBox(height: 11),
+        const SizedBox(height: 7),
         SingleChildScrollView(scrollDirection: Axis.horizontal,
           child: Row(children: [
             DropdownButtonHideUnderline(child: DropdownButton<String>(
               value: widget.model.language,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
               borderRadius: BorderRadius.circular(19),
               items: languages.entries.map((e) => DropdownMenuItem(
-                value: e.key, child: Text(e.value))).toList(),
+                value: e.key, child: Text(languageLabel(e.key)))).toList(),
               onChanged: (val) async {
                 if (val != null) await widget.model.setLanguage(val);
               },
             )),
-            const SizedBox(width: 9),
-            _chip('Minhas vozes', !rankingMode, () {
-              if (rankingMode) {setState(() => rankingMode = false); unawaited(refresh());}
-            }),
             const SizedBox(width: 7),
+            _chip(MediaQuery.sizeOf(context).width < 400 ? 'Minhas' : 'Minhas vozes', !rankingMode, () {
+              if (rankingMode) {setState(() {rankingMode = false; sharedCategory = 'all'; verifiedVoices.clear(); bulkCheckedVoices.clear();}); unawaited(refresh());}
+            }),
+            const SizedBox(width: 5),
             _chip('Top 10', rankingMode, () {
-              if (!rankingMode) {setState(() { rankingMode = true; age = 'all'; }); unawaited(refresh());}
+              if (!rankingMode) {setState(() {rankingMode = true; voiceType = 'all'; verifiedVoices.clear(); bulkCheckedVoices.clear();}); unawaited(refresh());}
             }),
+            IconButton(icon: Icon(Icons.tune_rounded,
+                color: filterActive ? theme.colorScheme.primary : null),
+              tooltip: 'Abrir filtros da API e compatibilidade', onPressed: showFilters),
           ])),
-        const SizedBox(height: 8),
-        SingleChildScrollView(scrollDirection: Axis.horizontal,
+        if (filterActive) Padding(padding: const EdgeInsets.only(top: 5),
           child: Row(children: [
-            _chip('Todas', accessFilter == VoiceAccessFilter.all,
-              () => setState(() => accessFilter = VoiceAccessFilter.all)),
-            const SizedBox(width: 6),
-            _chip('Compatíveis com meu plano', accessFilter == VoiceAccessFilter.compatible,
-              () => setState(() => accessFilter = VoiceAccessFilter.compatible)),
-            const SizedBox(width: 6),
-            _chip('Restritas', accessFilter == VoiceAccessFilter.restricted,
-              () => setState(() => accessFilter = VoiceAccessFilter.restricted)),
-            const SizedBox(width: 6),
-            _chip('A confirmar', accessFilter == VoiceAccessFilter.unknown,
-              () => setState(() => accessFilter = VoiceAccessFilter.unknown)),
-          ])),
-        if (filterActive) Padding(padding: const EdgeInsets.symmetric(vertical: 9),
-          child: Row(children: [
-            Icon(Icons.filter_list_rounded, color: theme.colorScheme.primary, size: 19),
-            const SizedBox(width: 7),
-            const Expanded(child: Text('Filtros ativos')),
+            Expanded(child: Text('Filtros ativos${accessFilter == VoiceAccessFilter.all ? '' : ': ${accessFilterTitle(accessFilter)}'}',
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall)),
+            IconButton(icon: const Icon(Icons.help_outline_rounded, size: 20),
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Entenda compatibilidade e restrições', onPressed: showAccessHelp),
             TextButton(onPressed: () {
-              setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
-                age = 'all'; accent = 'all'; accessFilter = VoiceAccessFilter.all;});
+              setState(() { category = 'all'; voiceStyle = 'all'; gender = 'all';
+                age = 'all'; accent = 'all'; sharedCategory = 'all'; voiceType = 'all';
+                accessFilter = VoiceAccessFilter.all; });
               unawaited(refresh());
             }, child: const Text('Limpar')),
           ])),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 11),
-          child: Text(rankingMode
-              ? 'Top 10 real por uso no último ano; depende da permissão da conta. A busca filtra somente este Top 10.'
-              : 'Busca e filtros de catálogo consultam a API. Compatibilidade é avaliada somente nas páginas carregadas, sem testar geração. Consulte detalhes de vozes a confirmar.',
-            style: theme.textTheme.bodySmall)),
         if ((widget.model.subscription == null ||
              const ['desconhecido', 'unknown', ''].contains(
                  widget.model.subscription!.tier.trim().toLowerCase())) &&
             widget.model.key.isNotEmpty)
           Padding(padding: const EdgeInsets.only(bottom: 7), child: Row(children: [
-            Expanded(child: Text('Plano desconhecido: consulte a assinatura para usar o filtro de compatibilidade.',
+            Expanded(child: Text('Plano não identificado',
               style: theme.textTheme.bodySmall)),
+            IconButton(icon: const Icon(Icons.help_outline_rounded, size: 20),
+              tooltip: 'Por que preciso consultar meu plano?', onPressed: showAccessHelp),
             TextButton(onPressed: widget.model.refreshingUsage ? null : () =>
                 unawaited(widget.model.refreshUsage()),
               child: Text(widget.model.refreshingUsage ? 'Consultando…' : 'Consultar plano')),
           ])),
-        if (accessFilter != VoiceAccessFilter.all && widget.model.key.isNotEmpty)
-          Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(
-            '${visible.length} de ${allLoaded.length} vozes carregadas correspondem ao filtro. '
-            'Sem garantia de acesso ao modelo, créditos ou custo.',
-            style: theme.textTheme.bodySmall)),
+        if (accessFilter != VoiceAccessFilter.all)
+          Padding(padding: const EdgeInsets.only(bottom: 4),
+            child: Row(children: [
+              Expanded(child: Text('${visible.length}/${allLoaded.length} vozes carregadas',
+                style: theme.textTheme.bodySmall)),
+            ])),
+        if (!rankingMode && widget.model.key.isNotEmpty &&
+            ownVoices.any((v) => !bulkCheckedVoices.contains(v.id) &&
+              accessFor(verifiedVoices[v.id] ?? v).state == VoiceAccess.unknown) &&
+            (accessFilter == VoiceAccessFilter.compatible ||
+              accessFilter == VoiceAccessFilter.unknown))
+          Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+            onPressed: verifyingLoaded || loading ? null : verifyLoadedAccess,
+            icon: verifyingLoaded ? const SizedBox(width: 16, height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.fact_check_outlined, size: 18),
+            label: Text(verifyingLoaded ? 'Verificando…' : 'Verificar vozes carregadas (até 10)'),
+          )),
         if (widget.model.key.isEmpty)
           EmptyState(icon: Icons.key_rounded, title: 'Conecte sua conta',
             description: 'Configure sua chave API para explorar vozes.',
@@ -550,21 +732,22 @@ class _VoicesPageState extends State<VoicesPage> {
             action: OutlinedButton(onPressed: () => refresh(force: true),
               child: const Text('Tentar novamente')))
         else if (visible.isEmpty && !loading)
-          EmptyState(icon: Icons.mic_off_outlined, title: 'Nenhuma voz encontrada',
-            description: loadingMore ? 'Buscando...' : rankingMode
-                ? 'Sem dados para este idioma e filtro. O ranking pode exigir outro plano.'
-                : accessFilter == VoiceAccessFilter.compatible
+          EmptyState(icon: Icons.mic_off_outlined, title: accessFilter == VoiceAccessFilter.compatible
+              ? 'Sem compatibilidade confirmada' : 'Nenhuma voz encontrada',
+            description: loadingMore ? 'Buscando...' :
+                accessFilter == VoiceAccessFilter.compatible
                     ? 'Nenhuma compatibilidade comprovada nas páginas carregadas. '
                       'Use “A confirmar” e consulte os detalhes de uma voz por vez.'
                     : accessFilter == VoiceAccessFilter.unknown
                       ? 'Nenhuma voz pendente de confirmação nas páginas carregadas.'
                       : accessFilter == VoiceAccessFilter.restricted
                         ? 'Nenhuma restrição identificada nas páginas carregadas.'
-                        : 'A API não retornou vozes com estes filtros nesta página.',
+                        : rankingMode ? 'Sem vozes neste Top 10. A biblioteca pode exigir outro plano.'
+                          : 'A API não retornou vozes com estes filtros nesta página.',
             action: OutlinedButton(onPressed: () {
               searchDebounce?.cancel(); searchController.clear();
               setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
-                age = 'all'; accent = 'all'; favoritesOnly = false;
+                age = 'all'; accent = 'all'; voiceType = 'all'; sharedCategory = 'all'; favoritesOnly = false;
                 accessFilter = VoiceAccessFilter.all;});
               unawaited(refresh(force: true));
             }, child: const Text('Limpar filtros')))
@@ -576,7 +759,22 @@ class _VoicesPageState extends State<VoicesPage> {
             const SizedBox(width: 12),
             Expanded(child: InkWell(onTap: () => select(voice),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(voice.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Row(children: [
+                  Expanded(child: Text(voice.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700))),
+                  if (!rankingMode) PopupMenuButton<String>(
+                    tooltip: 'Opções da voz',
+                    icon: const Icon(Icons.more_vert_rounded, size: 19),
+                    padding: EdgeInsets.zero,
+                    onSelected: (_) => unawaited(removeVoice(voice)),
+                    itemBuilder: (_) => [PopupMenuItem<String>(
+                      value: 'delete', enabled: voice.canRemoveFromAccount &&
+                        !removingVoices.contains(voice.id),
+                      child: Text(voice.canRemoveFromAccount
+                        ? 'Remover da conta' : 'Voz padrão/legada (não removível)'),
+                    )],
+                  ),
+                ]),
                 const SizedBox(height: 5),
                 Text(voice.summary.isEmpty ? 'Voz ElevenLabs' : voice.summary,
                   maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),

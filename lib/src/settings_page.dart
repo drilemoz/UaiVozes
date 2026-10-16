@@ -287,6 +287,13 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('O que mudou?'), subtitle: const Text('Novidades da versão instalada'),
             trailing: const Icon(Icons.chevron_right_rounded), onTap: widget.showChanges),
           const Divider(),
+          ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.bug_report_outlined),
+            title: const Text('Diagnóstico local'), subtitle: const Text('Ver, copiar e exportar eventos'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => const DiagnosticsPage())),
+          ),
+          const Divider(),
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.assistant_outlined),
             title: const Text('Assistente inicial'), subtitle: const Text('Reabrir o guia de configuração'),
             trailing: const Icon(Icons.chevron_right_rounded), onTap: widget.showWizard),
@@ -304,6 +311,13 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.18': [
+    'Explorador compacto: filtros reunidos no painel da API e idioma 🇧🇷 Português.',
+    'Acesso por plano com ajuda contextual e checagem manual de até dez vozes sem gerar áudio.',
+    'Minhas vozes: opção de remover da conta com confirmação e MP3s preservados.',
+    'Diagnóstico agora fica em Ajustes e exporta TXT completo pelo seletor nativo Android.',
+  ],
+
   '0.1.0-alpha.17': [
     'Diagnóstico registra bloqueios de vozes ao selecionar, verificar ou gerar, sem expor nome, ID nem chave.',
     'HTTP 402 e acesso desconhecido continuam separados de bloqueios confirmados.',
@@ -459,16 +473,6 @@ class AboutPage extends StatelessWidget {
               ]),
             )),
           ])),
-        )),
-        const SectionTitle('Diagnóstico local'),
-        UaiVozesCard(child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.bug_report_outlined),
-          title: const Text('Erros do aplicativo'),
-          subtitle: const Text('Consultar, copiar ou exportar relatório local'),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => const DiagnosticsPage())),
         )),
         const SectionTitle('Apoie o desenvolvimento'),
         UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

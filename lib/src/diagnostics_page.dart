@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'diagnostic_export.dart';
 
 import 'app_model.dart';
 import 'diagnostics.dart';
@@ -36,14 +33,10 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
     if (exporting) return;
     setState(() => exporting = true);
     try {
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/Uai-Vozes-Diagnostico.txt');
-      await file.writeAsString(
+      final saved = await DiagnosticExport.save(
         AppDiagnostics.instance.report(version: AppModel.version,
-          voiceOnly: onlyVoiceEvents), flush: true);
-      // Compartilhamento nativo: usuário escolhe onde salvar/enviar o TXT.
-      await Share.shareXFiles([XFile(file.path, mimeType: 'text/plain')],
-        text: 'Diagnóstico local do Uai Vozes');
+          voiceOnly: onlyVoiceEvents));
+      if (mounted && saved) notice(context, 'Relatório TXT completo salvo.');
     } catch (e, stack) {
       AppDiagnostics.instance.capture('DIAGNOSTICO_EXPORTAR', e, stack);
       if (mounted) notice(context, 'Não foi possível exportar o relatório.');
@@ -96,14 +89,21 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
               'Exportação somente por sua escolha.',
               style: theme.textTheme.bodySmall),
             const SizedBox(height: 16),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              FilledButton.icon(onPressed: copyReport,
-                icon: const Icon(Icons.copy_rounded), label: const Text('Copiar')),
-              OutlinedButton.icon(onPressed: exporting ? null : exportReport,
-                icon: const Icon(Icons.ios_share_rounded),
-                label: Text(exporting ? 'Exportando…' : 'Exportar')),
-              TextButton.icon(onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded), label: const Text('Fechar')),
+            Row(children: [
+              IconButton(onPressed: copyReport, tooltip: 'Copiar relatório completo',
+                icon: const Icon(Icons.copy_rounded)),
+              const SizedBox(width: 4),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: exporting ? null : exportReport,
+                icon: const Icon(Icons.save_alt_rounded, size: 18),
+                label: Text(exporting ? 'Salvando…' : 'Exportar'),
+              )),
+              const SizedBox(width: 7),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: clearReport,
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                label: const Text('Excluir'),
+              )),
             ]),
           ])),
           const SectionTitle('Registro de eventos'),
@@ -131,9 +131,7 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
               ],
             )),
           )),
-          const SizedBox(height: 10),
-          Center(child: TextButton.icon(onPressed: clearReport,
-            icon: const Icon(Icons.delete_outline), label: const Text('Limpar histórico'))),
+
         ]);
       })),
     );

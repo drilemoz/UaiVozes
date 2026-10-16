@@ -30,3 +30,8 @@
 
 - Ao registrar restrições de vozes, nunca salvar nome, ID completo, prompt, chave, texto de erro, URL ou corpo HTTP. Capturar só após ação do usuário (selecionar, verificar, gerar); não registrar cada linha da lista nem disparar TTS de teste.
 - Diagnóstico diferencia restrição explicitamente informada pela API/metadados de HTTP 402 ambíguo. O filtro de eventos de voz aplica-se também à exportação/cópia; conservar limite de 100 registros.
+
+- A partir da alpha.18: filtros de compatibilidade exigem tiers explícitos, não confundir voz da conta com autorização comprovada. O endpoint /v2/voices permite `voice_type`, mas não possui filtro direto por assinatura; checagens adicionais devem ser GET manual por ação explícita, sem TTS e limitadas.
+- Exclusão de voz: somente após confirmação do usuário e resposta `status: ok` da API DELETE; não apagar MP3 local, nem repetir DELETE automaticamente. Bloquear padrão/legada; remover seleção/favorito somente depois de sucesso.
+- Diagnóstico: exportar o conteúdo UTF-8 completo por SAF (`exportDiagnostic`) e tratar cancelamento sem marcar sucesso. Nenhum dado privado no log/arquivo além de campos seguros. Copiar/Exportar/Excluir organizados na mesma faixa.
+- Sobre só histórico/doação; acesso Diagnóstico em Ajustes junto de O que mudou?.

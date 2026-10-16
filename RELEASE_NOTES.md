@@ -1,10 +1,10 @@
-# Uai Vozes v0.17 (alpha.17)
+# Uai Vozes v0.18 (alpha.18)
 
-Diagnóstico de bloqueios e recusas de acesso a vozes, com captura segura e sem gastos extras de créditos.
+Explorador de Vozes compacto, remoção confirmada e exportação completa do Diagnóstico local.
 
-- Registra restrições quando o usuário tenta selecionar/gerar com voz restrita e quando uma consulta manual de detalhes confirma a restrição.
-- Captura HTTP e motivo de erro permitido nas verificações e gerações rejeitadas. HTTP 402 isolado sinaliza cobrança/créditos a verificar, não bloqueio confirmado.
-- Sobre > Diagnóstico local: filtro **Somente eventos de vozes**, Copiar e Exportar respeitando o filtro.
-- Referência anônima da voz para relacionar eventos, sem guardar nome, ID original, texto, chave API, resposta remota ou cabeçalhos.
-- Sem novas requisições TTS, dependências, migrações ou alteração de certificado e Secrets.
-- APK/testes Flutter desta versão ainda não executados; conferir no GitHub Actions.
+- Filtros da API reunidos em uma folha inferior para Minhas vozes e Top 10; indicador 🇧🇷 Português, ajudas `?` e informações sem texto repetido. Há filtros de tipo, finalidade, gênero, idade e sotaque conforme a origem, além da compatibilidade local.
+- O filtro Compatíveis com meu plano não é garantido pela ElevenLabs: apenas metadados explícitos confirmam o tier. Ação manual para até 10 GETs de detalhes, sem teste TTS ou reenvio de geração.
+- Minhas vozes inclui menu ⋮ > Remover da conta. Confirmação obrigatória antes da exclusão; vozes padrão/legadas não removíveis; áudios gravados continuam na Biblioteca.
+- Diagnóstico movido para Ajustes, ao lado de O que mudou?. Copiar, Exportar TXT e Excluir na mesma linha. Exportação grava o texto real por SAF, mediante destino escolhido pelo usuário.
+- Correções de código, documentação e metadados sincronizados em `0.1.0-alpha.18+18`, APK de nome separado `Uai-Vozes-v0.18.apk` no GitHub Actions.
+- Sem mudança de Secrets, senha, chaves, keystore, `applicationId` ou dados locais. Compilação Android e testes Flutter completos ainda pendentes do workflow.

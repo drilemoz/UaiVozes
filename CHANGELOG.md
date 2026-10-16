@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.18+18 · 16/10/2026
+
+- Explorador de vozes compactado: faixa única de idioma, Minhas vozes, Top 10, filtro e ajuda contextual. 🇧🇷 Português substitui “Português (Brasil)” no seletor; filtros de compatibilidade, origem/categoria, finalidade, estilo, gênero, idade e sotaque ficam em modal; filtros reais são enviados apenas aos endpoints que os aceitam.
+- Consulta de voz por GET individual ou em lote manual limitado a até dez por toque, sem sintetizar texto, e sem repetir automaticamente consultas inconclusivas. Filtro de plano permanece conservador se `available_for_tiers` estiver ausente. As ajudas `?` explicam os critérios, sem repetir frases permanentes.
+- Minhas vozes: menu ⋮ para remoção explícita e confirmada da conta ElevenLabs por DELETE, respeitando proibição de vozes padrão/legadas e mantendo MP3s gerados; limpar seleção/favorito só após confirmação de sucesso.
+- Diagnóstico acessível diretamente em Ajustes junto a O que mudou?, não mais em Sobre. Exportar salva relatório completo pelo seletor SAF/UTF-8 (`ACTION_CREATE_DOCUMENT`), sem Sharesheet com texto de título. Botões Copiar, Exportar e Excluir em uma linha.
+- Novos testes API/fluxo/versão para regressões. Secrets, dados locais, certificado e identificador Android preservados. Flutter analyze/test e APK pendentes de GitHub Actions.
+
 ## 0.1.0-alpha.17+17 · 16/10/2026
 
 - Captura de restrições de vozes nos Diagnósticos: seleção bloqueada por metadados, verificação manual inconclusiva e erros de verificação, inclusão ou geração. Diferencia bloqueio confirmado por motivo da API de HTTP 402 sem causa confirmada.

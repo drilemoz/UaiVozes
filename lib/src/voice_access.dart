@@ -92,5 +92,6 @@ Voice mergeVoiceAccessMetadata(Voice original, Voice detail) {
         ? detail.availableForTiers : original.availableForTiers,
     freeUsersAllowed: detail.freeUsersAllowed ?? original.freeUsersAllowed,
     hasCustomRate: detail.hasCustomRate || original.hasCustomRate,
+    isLegacy: original.isLegacy || detail.isLegacy,
   );
 }

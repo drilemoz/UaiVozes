@@ -247,12 +247,14 @@ class ElevenApi {
     String? age,
     String? accent,
     String? useCase,
+    String? voiceType,
   }) async {
     final query = <String, String>{
       'page_size': '30',
       'include_total_count': 'false',
     };
     if (token != null && token.isNotEmpty) query['next_page_token'] = token;
+    if (voiceType != null && voiceType != 'all') query['voice_type'] = voiceType;
     if (language != null && language.isNotEmpty && language != 'all') {
       query['language'] = language;
     }
@@ -281,6 +283,10 @@ class ElevenApi {
     required String language,
     String? useCase,
     String? descriptive,
+    String? gender,
+    String? age,
+    String? accent,
+    String? sharedCategory,
   }) async {
     final query = <String, String>{
       'language': language,
@@ -295,11 +301,38 @@ class ElevenApi {
     if (descriptive != null && descriptive.isNotEmpty && descriptive != 'all') {
       query['descriptives'] = descriptive;
     }
+    if (gender != null && gender != 'all') query['gender'] = gender;
+    if (age != null && age != 'all') query['age'] = age;
+    if (accent != null && accent != 'all') query['accent'] = accent;
+    if (sharedCategory != null && sharedCategory != 'all') query['category'] = sharedCategory;
     final response = await _get('/v1/shared-voices', query);
     final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     final list = json['voices'] is List ? json['voices'] as List : [];
     return list.whereType<Map>().map((e) => Voice.fromJson(Map<String, dynamic>.from(e)))
         .where((e) => e.id.isNotEmpty).take(10).toList();
+  }
+
+  /// Ação explícita e irreversível: exclui uma voz da conta, não do áudio local.
+  /// Não realiza retentativas automáticas de DELETE.
+  Future<void> deleteVoice(String id) async {
+    if (id.trim().isEmpty) throw const FormatException('Identificador de voz ausente.');
+    try {
+      final response = await _client.delete(
+        Uri.https(host, '/v1/voices/${Uri.encodeComponent(id)}'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 25));
+      if (response.statusCode < 200 || response.statusCode >= 300) _fail(response);
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is! Map || data['status'] != 'ok') {
+        throw const ElevenApiException('A API não confirmou a remoção. Atualize sua lista antes de tentar novamente.');
+      }
+    } on ElevenApiException { rethrow; }
+      on FormatException {
+        throw const ElevenApiException('Resposta de remoção inconclusiva. Atualize a lista antes de tentar novamente.');
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('VOZES_REMOVER_REDE', e, stack);
+      throw const ElevenApiException('Não foi possível remover a voz. Verifique sua conexão.');
+    }
   }
 
   Future<Voice> voiceDetail(String id) async {

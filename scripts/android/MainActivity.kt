@@ -13,6 +13,7 @@ class MainActivity : FlutterActivity() {
     private val importRequest = 19011
     private val importTextRequest = 19013
     private val exportRequest = 19012
+    private val diagnosticRequest = 19014
     private var pending: MethodChannel.Result? = null
     private var exportContent: String? = null
 
@@ -35,9 +36,11 @@ class MainActivity : FlutterActivity() {
                         startActivityForResult(intent, if (call.method == "importText") importTextRequest else importRequest)
                     } catch (error: Exception) { fail("IMPORT", error) }
                 }
-                "exportKey" -> {
+                "exportKey", "exportDiagnostic" -> {
                     val content = call.argument<String>("content")
-                    if (content.isNullOrEmpty() || content.length > 8192) {
+                    val diagnostic = call.method == "exportDiagnostic"
+                    val maxChars = if (diagnostic) 100000 else 8192
+                    if (content.isNullOrEmpty() || content.length > maxChars) {
                         result.error("INVALID", "Conteúdo de exportação inválido.", null)
                         return@setMethodCallHandler
                     }
@@ -47,9 +50,10 @@ class MainActivity : FlutterActivity() {
                         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                             addCategory(Intent.CATEGORY_OPENABLE)
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TITLE, "Uai-Vozes-chave-API.txt")
+                            putExtra(Intent.EXTRA_TITLE, if (diagnostic)
+                                "Uai-Vozes-Diagnostico.txt" else "Uai-Vozes-chave-API.txt")
                         }
-                        startActivityForResult(intent, exportRequest)
+                        startActivityForResult(intent, if (diagnostic) diagnosticRequest else exportRequest)
                     } catch (error: Exception) { fail("EXPORT", error) }
                 }
                 else -> result.notImplemented()
@@ -67,7 +71,7 @@ class MainActivity : FlutterActivity() {
     @Deprecated("Usado pelo seletor de documentos SAF com FlutterActivity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != importRequest && requestCode != importTextRequest && requestCode != exportRequest) return
+        if (requestCode != importRequest && requestCode != importTextRequest && requestCode != exportRequest && requestCode != diagnosticRequest) return
         val callback = pending ?: return
         try {
             if (resultCode != Activity.RESULT_OK || data?.data == null) {

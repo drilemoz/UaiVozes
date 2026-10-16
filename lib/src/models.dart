@@ -17,6 +17,7 @@ class Voice {
     this.availableForTiers = const [],
     this.freeUsersAllowed,
     this.hasCustomRate = false,
+    this.isLegacy = false,
   });
 
   final String id;
@@ -35,6 +36,8 @@ class Voice {
   final List<String> availableForTiers;
   final bool? freeUsersAllowed;
   final bool hasCustomRate;
+  final bool isLegacy;
+  bool get canRemoveFromAccount => category != 'premade' && !isLegacy;
 
   static String _str(dynamic v) => v is String ? v : '';
 
@@ -48,6 +51,7 @@ class Voice {
     final rate = map['rate'] ?? sharing['rate'];
     return Voice(
       availableForTiers: allowed is List ? allowed.whereType<String>().toList() : const [],
+      isLegacy: map['is_legacy'] == true,
       freeUsersAllowed: map['free_users_allowed'] is bool
           ? map['free_users_allowed'] as bool
           : (sharing['free_users_allowed'] is bool ? sharing['free_users_allowed'] as bool : null),
@@ -94,6 +98,7 @@ class Voice {
         if (availableForTiers.isNotEmpty) 'available_for_tiers': availableForTiers,
         if (freeUsersAllowed != null) 'free_users_allowed': freeUsersAllowed,
         if (hasCustomRate) 'has_custom_rate': true,
+        if (isLegacy) 'is_legacy': true,
         // Não persistir uma taxa como se fosse um multiplicador.
       };
 

@@ -44,6 +44,8 @@ String voiceBrowseKey({
   String gender = 'all',
   String age = 'all',
   String accent = 'all',
+  String sharedCategory = 'all',
+  String voiceType = 'all',
   String? token,
 }) => [language, ranking ? 'top' : 'minhas', search.trim().toLowerCase(),
-      category, style, gender, age, accent, token ?? ''].join('\u001f');
+      category, style, gender, age, accent, sharedCategory, voiceType, token ?? ''].join('\u001f');
