@@ -2,11 +2,18 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.7+7** · APK pretendido: **Uai-Vozes-v0.07.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.8+8** · APK pretendido: **Uai-Vozes-v0.08.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.8 (correção do workflow #8)
+
+- Corrigido `SigningConfig "release" is missing required property "storePassword"`: os quatro Secrets agora estão presentes também na etapa `flutter build apk`, onde o Gradle assina o APK.
+- `prepare_android.sh` valida antecipadamente a keystore e o alias sem colocar a senha em argumentos ou logs.
+- Novo teste Python regressivo para garantir assinatura configurada em ambas as etapas.
+- **Não altere** os quatro Secrets de assinatura já importados. Use a mesma keystore para atualizar sem desinstalar.
 
 ## Novidades da alpha.7 (correção do workflow #7)
 
@@ -61,12 +68,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.07.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.08.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.07:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.08:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

@@ -296,6 +296,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.8': [
+    'Corrigida falha de assinatura no GitHub Actions #8, durante o empacotamento Release.',
+    'Os Secrets são disponibilizados também ao Gradle, mantendo o certificado de atualização.',
+    'Verificação antecipada da keystore e testes preventivos do workflow.',
+  ],
   '0.1.0-alpha.7': [
     'Corrigida verificação do workflow que rejeitava caches normais do Flutter.',
     'Segurança de distribuição reforçada sem incluir chaves ou arquivos temporários.',

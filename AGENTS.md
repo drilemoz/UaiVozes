@@ -21,3 +21,5 @@
 - Os testes `test/identity_test.dart` devem sempre acompanhar o versionamento, sem constantes hardcoded de releases antigas.
 
 - Não usar `android/` (sem barra inicial) no `.gitignore`: isso ocultaria `scripts/android/MainActivity.kt`; usar `/android/` para excluir só o Android gerado.
+
+- Os Secrets de assinatura precisam estar no ambiente do passo `flutter build apk`, pois o `build.gradle.kts` os lê com `System.getenv`; nunca mover apenas para a preparação nem incluir credenciais no ZIP.

@@ -30,7 +30,15 @@ for required in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
   fi
 done
 if [[ -f android/app/build.gradle.kts ]]; then
+  umask 077
   printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
+  # Falhar cedo em caso de senha de armazenamento ou alias incorretos.
+  # -storepass:env evita passar a senha como argumento de processo ou log.
+  if ! keytool -list -keystore android/app/release-key.jks \
+      -storepass:env KEYSTORE_PASSWORD -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+    echo 'ERRO: Keystore inválida, senha de armazenamento errada ou KEY_ALIAS inexistente. Confira os Secrets importados no GitHub Manager.' >&2
+    exit 1
+  fi
   python3 - <<'PY'
 from pathlib import Path
 p=Path('android/app/build.gradle.kts')

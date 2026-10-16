@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.7+7
+# Validação da versão 0.1.0-alpha.8+8
 
 ## Causa do workflow anterior
 
@@ -63,9 +63,19 @@ pelo script de assinatura; portanto ambas as validações precisavam ser corrigi
 - `test/identity_test.dart`: evita constantes antigas de versão/APK; obtém expectativas do `AppModel`.
 - O workflow roda `python3 -m unittest discover -s tools -p 'test_*.py' -v` e mantém `validate_source.py` após `flutter pub get`, para exercer a correção no mesmo contexto do erro.
 
-Validação reproduzível local: `python3 tools/validate_source.py --archive ../Uai-Vozes-v0.07-Fonte.zip` e `python3 -m unittest discover -s tools -p 'test_*.py' -v`.
+Validação histórica v0.07: `python3 tools/validate_source.py --archive ../Uai-Vozes-v0.07-Fonte.zip` e `python3 -m unittest discover -s tools -p 'test_*.py' -v`.
 O SDK Flutter/Android não está disponível neste ambiente; `flutter analyze`, `flutter test`, `flutter build apk` e a assinatura real precisam ser verificados no GitHub Actions. **Não afirmar que o build do APK passou**.
 
 ### Arquivo Kotlin nativo versionado
 
 A regra anterior `android/` de `.gitignore` também escondia `scripts/android/MainActivity.kt`. Foi substituída por `/android/`; o validador passa a exigir esse arquivo no índice Git/ZIP para garantir que a ponte nativa do seletor de documentos esteja disponível no CI.
+
+## Correção do workflow #8 (alpha.8)
+
+Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero issues) e dos **32 testes Flutter** para a v0.07. A falha real ocorreu no Gradle `:app:packageRelease` com `SigningConfig "release" is missing required property "storePassword"`.
+
+**Causa:** `prepare_android.sh` insere no Gradle `storePassword = System.getenv("KEYSTORE_PASSWORD")`; as quatro credenciais eram enviadas somente para o passo "Gerar Android nativo e configurar assinatura", não para o passo "Compilar APK ARM64 otimizado". Cada passo Actions possui seu próprio ambiente.
+
+**Correção:** os quatro Secrets são passados explicitamente ao passo `flutter build apk`, sem salvar senhas em arquivos versionados. `prepare_android.sh` também valida previamente a keystore e o alias com `keytool -list -storepass:env KEYSTORE_PASSWORD` e modo `umask 077`. O teste `tools/test_signing_workflow.py` impede regressão desse escopo de ambiente.
+
+**Pendências:** recompilar no GitHub Actions e comprovar assinatura e instalação em Android real. O aviso de migração do Kotlin `share_plus` não causou a falha e não foi alterado nesta correção.

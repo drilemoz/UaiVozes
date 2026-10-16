@@ -49,20 +49,27 @@ jobs:
       - name: Testar modelos
         run: flutter test
       - name: Compilar APK ARM64 otimizado
+        # Segredos definidos em passos anteriores NÃO persistem no job.
+        # O Gradle usa System.getenv no build.gradle.kts durante esta etapa.
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release --target-platform android-arm64
       - name: Exportar APK fora do ZIP
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.07.apk
-          test -s dist/Uai-Vozes-v0.07.apk
-          sha256sum dist/Uai-Vozes-v0.07.apk > dist/Uai-Vozes-v0.07.apk.sha256
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.08.apk
+          test -s dist/Uai-Vozes-v0.08.apk
+          sha256sum dist/Uai-Vozes-v0.08.apk > dist/Uai-Vozes-v0.08.apk.sha256
       - name: APK para download (GitHub Manager / Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: Uai-Vozes-v0.07-apk
+          name: Uai-Vozes-v0.08-apk
           path: |
-            dist/Uai-Vozes-v0.07.apk
-            dist/Uai-Vozes-v0.07.apk.sha256
+            dist/Uai-Vozes-v0.08.apk
+            dist/Uai-Vozes-v0.08.apk.sha256
           if-no-files-found: error
           retention-days: 30
       - name: Publicar Release opcional
@@ -70,9 +77,9 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha.7
-          name: Uai Vozes v0.07 (alpha.7)
+          tag_name: v0.1.0-alpha.8
+          name: Uai Vozes v0.08 (alpha.8)
           prerelease: true
           generate_release_notes: false
           body_path: RELEASE_NOTES.md
-          files: dist/Uai-Vozes-v0.07.apk
+          files: dist/Uai-Vozes-v0.08.apk

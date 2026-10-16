@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 0.1.0-alpha.8+8 · 16/10/2026
+- Corrigido o workflow #8: os Secrets estavam presentes somente na etapa de preparação Android, não no `flutter build apk`. Isso deixava `storePassword` vazio em `:app:packageRelease`.
+- Incluídos os quatro Secrets também no ambiente de compilação Gradle; keystore e alias validados antecipadamente, sem exibir senhas.
+- Adicionados testes de regressão para garantir que os Secrets cheguem à preparação e ao build. Identidade, assinatura e dados de versões anteriores preservados.
+- Logs do build #8 confirmam `flutter analyze` aprovado e 32 testes Flutter aprovados para a v0.07. APK v0.08 ainda precisa ser compilado.
+
 ## 0.1.0-alpha.7+7 · 16/10/2026
 - Corrigida a falha do workflow #7: `validate_source.py` analisava todo o workspace após `flutter pub get`, rejeitando `.dart_tool` e o Android gerado apesar de não estarem no ZIP ou no Git.
 - Verificação de higiene agora consulta o índice Git no CI ou um ZIP explicitamente informado com `--archive`, protegendo contra distribuição de caches e chaves privadas sem bloquear arquivos temporários do compilador.
@@ -58,4 +64,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.7+7. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.9+9. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

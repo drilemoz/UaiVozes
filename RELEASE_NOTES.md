@@ -1,10 +1,9 @@
-# Uai Vozes v0.07 · 0.1.0-alpha.7+7 (versionCode 7)
+# Uai Vozes v0.08 · 0.1.0-alpha.8+8 (versionCode 8)
 
-- Corrigido o falso positivo do validador do GitHub Actions #7, que confundia os caches legítimos do Flutter e o Android gerado com arquivos distribuídos.
-- Verificação segura dos arquivos realmente versionados ou presentes no ZIP, mantendo proteção contra inclusão de caches e keystores privadas.
-- Atualizado teste de identidade para acompanhar as versões atuais, sem referências estáticas à v0.05.
-- Corrigido `.gitignore` para incluir `scripts/android/MainActivity.kt` no repositório; antes a regra ampla `android/` também ignorava esse código-fonte nativo.
-- Acrescentados três testes Python de higiene da distribuição ao workflow, sem novas dependências Flutter.
-- Preservados nome Uai Vozes, identificador `com.drilemoz.uaivozes`, dados locais e assinatura obrigatória com os mesmos quatro Secrets.
+- Corrigido o GitHub Actions #8: a senha da keystore não chegava à etapa `flutter build apk`, causando `SigningConfig "release" is missing required property "storePassword"`.
+- Os quatro Secrets de assinatura agora são disponibilizados tanto à preparação quanto à compilação, sem persistir senhas no repositório.
+- Incluída verificação antecipada da keystore no script de preparação e testes contra regressão do workflow.
+- Mantidos o mesmo certificado (Secrets existentes), identificador `com.drilemoz.uaivozes`, recursos, áudios locais e fluxo de atualização sem desinstalar.
+- Confirmado pelo log #8: `flutter analyze` sem avisos e 32 testes Flutter aprovados para a v0.07. Novo build de APK ainda pendente.
 
-APK previsto: `Uai-Vozes-v0.07.apk` como artifact separado, com SHA-256. A compilação Flutter e os testes Android seguem pendentes da execução no GitHub Actions.
+APK previsto: `Uai-Vozes-v0.08.apk` no Artifact e opcionalmente em Releases, fora do ZIP de código, acompanhado do SHA-256 no Artifact.

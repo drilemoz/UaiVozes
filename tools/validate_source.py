@@ -10,9 +10,9 @@ from pathlib import Path
 from source_hygiene import distribution_paths, prohibited_paths
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0-alpha.7"
-CODE = 7
-APK = "Uai-Vozes-v0.07.apk"
+VERSION = "0.1.0-alpha.8"
+CODE = 8
+APK = "Uai-Vozes-v0.08.apk"
 PACKAGE = "com.drilemoz.uaivozes"
 
 def content(path):
@@ -45,7 +45,15 @@ def main(source_archive=None):
     signing = content("scripts/prepare_android.sh")
     for name in ("KEYSTORE_BASE64", "KEYSTORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD"):
         check(name in signing and f"secrets.{name}" in workflow, f"secret {name}")
+    # Sem estas variáveis NO PASSO de build, o Gradle recebe storePassword=null.
+    build_step = re.search(r"(?ms)^      - name: Compilar APK ARM64 otimizado\n(?P<body>.*?)(?=^      - name:|\Z)", workflow)
+    check(build_step is not None, "passo de compilação identificado")
+    for secret in ("KEYSTORE_BASE64", "KEYSTORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD"):
+        check(f"{secret}: ${{{{ secrets.{secret} }}}}" in build_step.group("body"),
+              f"secret {secret} disponível durante Gradle")
     check("exit 1" in signing and "obrigatória" in signing.lower(), "assinatura estável obrigatória")
+    check("-storepass:env KEYSTORE_PASSWORD" in signing and "-alias \"$KEY_ALIAS\"" in signing,
+          "keystore verificada antes do build sem expor senha em argumentos")
     manifest = ET.fromstring(content("scripts/AndroidManifest.xml"))
     app = manifest.find("application")
     label = app.attrib["{http://schemas.android.com/apk/res/android}label"]
