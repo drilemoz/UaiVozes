@@ -10,6 +10,7 @@ import 'models.dart';
 import 'ui.dart';
 import 'voice_browse_cache.dart';
 import 'voice_access.dart';
+import 'voice_block_diagnostics.dart';
 
 const voiceStyles = <String, String>{
   'all': 'Todos os estilos',
@@ -289,10 +290,22 @@ class _VoicesPageState extends State<VoicesPage> {
           mergeVoiceAccessMetadata(voice, detail));
       final info = evaluateVoiceAccess(verifiedVoices[voice.id]!,
           widget.model.subscription?.tier, publicLibrary: rankingMode);
-      if (info.state == VoiceAccess.unknown) {
-        notice(context, 'A API não confirmou o acesso a esta voz.');
+      if (info.isRestricted) {
+        VoiceBlockDiagnostics.localRestriction(verifiedVoices[voice.id]!,
+          widget.model.subscription?.tier, publicLibrary: rankingMode,
+          stage: VoiceCheckStage.detail);
+        notice(context, 'Restrição registrada no Diagnóstico local.');
+      } else if (info.state == VoiceAccess.unknown) {
+        VoiceBlockDiagnostics.inconclusiveDetail(verifiedVoices[voice.id]!,
+          widget.model.subscription?.tier, publicLibrary: rankingMode);
+        notice(context, 'Acesso não confirmado. Consulte o Diagnóstico local.');
       }
     } catch (e, stack) {
+      if (e is ElevenApiException && mounted && revision == requestVersion &&
+          key == widget.model.key) {
+        VoiceBlockDiagnostics.apiFailure(voice, widget.model.subscription?.tier,
+          e, publicLibrary: rankingMode, stage: VoiceCheckStage.detail);
+      }
       AppDiagnostics.instance.capture('VOZES_DETALHE', e, stack);
       if (mounted && revision == requestVersion && key == widget.model.key) {
         notice(context, 'Não foi possível consultar os detalhes: ${friendlyError(e)}');
@@ -310,12 +323,17 @@ class _VoicesPageState extends State<VoicesPage> {
   Future<void> select(Voice voice) async {
     final access = accessFor(voice);
     if (access.isRestricted) {
+      VoiceBlockDiagnostics.localRestriction(voice, widget.model.subscription?.tier,
+        publicLibrary: rankingMode, stage: VoiceCheckStage.select);
       if (mounted) await showModalBottomSheet<void>(context: context,
         showDragHandle: true, builder: (ctx) => SafeArea(child: Padding(
           padding: const EdgeInsets.all(22), child: Column(mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(access.label, style: Theme.of(ctx).textTheme.titleLarge),
             const SizedBox(height: 10), Text(access.details),
+            const SizedBox(height: 10),
+            const Text('Bloqueio registrado em Sobre > Diagnóstico local, '
+              'sem nome nem ID original da voz.'),
             const SizedBox(height: 16), FilledButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('Entendi')),
           ]))));
@@ -341,6 +359,10 @@ class _VoicesPageState extends State<VoicesPage> {
         if (mounted) notice(context, 'Voz adicionada à conta.');
         widget.onChosen();
       } catch (e, stack) {
+        if (e is ElevenApiException) {
+          VoiceBlockDiagnostics.apiFailure(voice, widget.model.subscription?.tier,
+            e, publicLibrary: true, stage: VoiceCheckStage.addShared);
+        }
         AppDiagnostics.instance.capture('VOZES_SELECIONAR', e, stack);
         if (mounted) notice(context, friendlyError(e));
       }

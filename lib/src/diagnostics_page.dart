@@ -18,11 +18,13 @@ class DiagnosticsPage extends StatefulWidget {
 
 class _DiagnosticsPageState extends State<DiagnosticsPage> {
   bool exporting = false;
+  bool onlyVoiceEvents = false;
 
   Future<void> copyReport() async {
     try {
       await Clipboard.setData(ClipboardData(text:
-        AppDiagnostics.instance.report(version: AppModel.version)));
+        AppDiagnostics.instance.report(version: AppModel.version,
+          voiceOnly: onlyVoiceEvents)));
       if (mounted) notice(context, 'Relatório copiado.');
     } catch (e, stack) {
       AppDiagnostics.instance.capture('DIAGNOSTICO_COPIAR', e, stack);
@@ -37,7 +39,8 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/Uai-Vozes-Diagnostico.txt');
       await file.writeAsString(
-        AppDiagnostics.instance.report(version: AppModel.version), flush: true);
+        AppDiagnostics.instance.report(version: AppModel.version,
+          voiceOnly: onlyVoiceEvents), flush: true);
       // Compartilhamento nativo: usuário escolhe onde salvar/enviar o TXT.
       await Share.shareXFiles([XFile(file.path, mimeType: 'text/plain')],
         text: 'Diagnóstico local do Uai Vozes');
@@ -67,7 +70,8 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
           onPressed: () => Navigator.of(context).pop()),
       ]),
       body: SafeArea(child: AnimatedBuilder(animation: monitor, builder: (context, _) {
-        final events = monitor.entries;
+        final events = monitor.filteredEntries(voiceOnly: onlyVoiceEvents);
+        final voiceCount = monitor.filteredEntries(voiceOnly: true).length;
         return ListView(padding: const EdgeInsets.fromLTRB(18, 10, 18, 24), children: [
           UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [const Icon(Icons.shield_outlined), const SizedBox(width: 10),
@@ -75,11 +79,21 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
             ]),
             const SizedBox(height: 10),
-            Text('${events.length} registros recentes (limite ${AppDiagnostics.maxEntries}).',
-              style: theme.textTheme.bodyMedium),
+            Text('${monitor.entries.length} registros recentes (limite ${AppDiagnostics.maxEntries}). '
+              'Eventos de vozes: $voiceCount.', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            FilterChip(label: const Text('Somente eventos de vozes'),
+              selected: onlyVoiceEvents,
+              onSelected: (value) => setState(() => onlyVoiceEvents = value)),
+            Text(onlyVoiceEvents
+              ? 'Copiar e Exportar incluem somente eventos de vozes.'
+              : 'Copiar e Exportar incluem todos os eventos.',
+              style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
             Text('Funciona offline. Não registra chave API, texto digitado, '
-              'conteúdo de áudio ou dados de autenticação. Exportação somente por sua escolha.',
+              'conteúdo de áudio, nomes/IDs originais das vozes ou dados de autenticação. '
+              'A referência anônima serve apenas para correlacionar eventos. '
+              'Exportação somente por sua escolha.',
               style: theme.textTheme.bodySmall),
             const SizedBox(height: 16),
             Wrap(spacing: 8, runSpacing: 8, children: [
@@ -93,8 +107,10 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
             ]),
           ])),
           const SectionTitle('Registro de eventos'),
-          if (events.isEmpty) const UaiVozesCard(child: Text(
-            'Nenhum erro registrado. Os próximos eventos aparecerão aqui.')),
+          if (events.isEmpty) UaiVozesCard(child: Text(onlyVoiceEvents
+            ? 'Nenhum evento de voz registrado. Tente selecionar uma voz restrita '
+              'ou use Verificar acesso no Explorador.'
+            : 'Nenhum erro registrado. Os próximos eventos aparecerão aqui.')),
           ...events.map((entry) => Padding(padding: const EdgeInsets.only(bottom: 9),
             child: UaiVozesCard(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [

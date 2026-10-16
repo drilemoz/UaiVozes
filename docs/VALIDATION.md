@@ -1,5 +1,13 @@
 # Validação da versão 0.1.0-alpha.16+16
 
+## Funcionalidade alpha.17: diagnósticos de voz
+
+- `voice_block_diagnostics.dart` centraliza registros de bloqueio por metadados somente após interação, valida códigos HTTP conhecidos e distingue HTTP 402 isolado de restrição confirmada.
+- Dados pessoais não são gravados: a referência do ID é uma correlação não criptográfica, não o ID completo; plano e motivo aceitos somente com valores seguros.
+- UI de diagnósticos permite filtrar eventos de voz e copiar/exportar o subconjunto selecionado, preservando as outras entradas e o limite de 100.
+- Novos testes Dart (`test/voice_block_diagnostics_test.dart`) cobrem eventos, confidencialidade, motivos permitidos, HTTP 402/403 e filtro. Testes Python (`tools/test_voice_block_capture.py`) cobrem integração e ausência de TTS no capturador.
+- `flutter analyze`, `flutter test`, `flutter build apk --release` e instalação Android não foram executados localmente porque o Flutter SDK está ausente; realizar CI.
+
 ## Evidências do workflow #13, 16/10/2026
 
 - Flutter 3.47.7: `flutter analyze` aprovado, sem issues.

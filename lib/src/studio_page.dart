@@ -8,6 +8,8 @@ import 'app_model.dart';
 import 'credit_ledger.dart';
 import 'account_page.dart';
 import 'diagnostics.dart';
+import 'voice_block_diagnostics.dart';
+import 'eleven_api.dart';
 import 'generation_failure.dart';
 import 'models.dart';
 import 'ui.dart';
@@ -201,7 +203,9 @@ class _StudioPageState extends State<StudioPage> {
       }
       final access = evaluateVoiceAccess(voice, widget.model.subscription?.tier);
       if (access.isRestricted) {
-        notice(context, '${access.label}: escolha outra voz ou confira sua assinatura.');
+        VoiceBlockDiagnostics.localRestriction(voice, widget.model.subscription?.tier,
+          publicLibrary: false, stage: VoiceCheckStage.studio);
+        notice(context, '${access.label}: bloqueio registrado no Diagnóstico local.');
         return;
       }
       final content = text.text.trim();
@@ -263,6 +267,10 @@ class _StudioPageState extends State<StudioPage> {
         unawaited(widget.model.refreshUsage());
         notice(context, 'Áudio gerado e salvo na Biblioteca.');
       } catch (error, stack) {
+        if (error is ElevenApiException) {
+          VoiceBlockDiagnostics.apiFailure(voice, widget.model.subscription?.tier,
+            error, publicLibrary: false, stage: VoiceCheckStage.studio);
+        }
         final failure = GenerationFailure.classify(error,
           audioReceived: audioReceived, audioSaved: audioSaved);
         AppDiagnostics.instance.capture('ESTUDIO_GERAR', error, stack);

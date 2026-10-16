@@ -27,3 +27,6 @@
 - Os Secrets de assinatura precisam estar no ambiente do passo `flutter build apk`, pois o `build.gradle.kts` os lê com `System.getenv`; nunca mover apenas para a preparação nem incluir credenciais no ZIP.
 
 - Filtros de compatibilidade: só considerar "compatível" quando `available_for_tiers` contém o tier atual. Não transformar `free_users_allowed` em prova de geração, nem classificar voz sem metadados como grátis. Voice Library pública via API não atende contas Free segundo documentação em 16/10/2026; consultar novamente se API mudar. Consultar detalhes apenas por toque (GET), nunca emitir TTS para testar acesso, proteger trocas de chave/idioma e filtros contra dados antigos.
+
+- Ao registrar restrições de vozes, nunca salvar nome, ID completo, prompt, chave, texto de erro, URL ou corpo HTTP. Capturar só após ação do usuário (selecionar, verificar, gerar); não registrar cada linha da lista nem disparar TTS de teste.
+- Diagnóstico diferencia restrição explicitamente informada pela API/metadados de HTTP 402 ambíguo. O filtro de eventos de voz aplica-se também à exportação/cópia; conservar limite de 100 registros.

@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.17+17 · 16/10/2026
+
+- Captura de restrições de vozes nos Diagnósticos: seleção bloqueada por metadados, verificação manual inconclusiva e erros de verificação, inclusão ou geração. Diferencia bloqueio confirmado por motivo da API de HTTP 402 sem causa confirmada.
+- Novo `VoiceBlockDiagnostics` classifica etapas, origens e plano por listas seguras; vincula eventos pela referência derivada do ID sem registrar nome ou ID original, chave, texto, cabeçalhos ou corpo HTTP. Limite de 100 registros mantido.
+- Tela Diagnóstico ganhou filtro de eventos de vozes aplicado também à cópia e exportação em TXT, sem apagar os demais eventos. Não há detecção automática por envio de textos, chamadas TTS extras ou verificações em lote.
+- Sete testes Dart e três regressões Python adicionados; `flutter analyze`, `flutter test` e build Android aguardam execução no Actions.
+- Metadados, workflow, documentação, notas no app e identificador Android sincronizados; quatro Secrets existentes preservados.
+
 ## 0.1.0-alpha.16+16 · 16/10/2026
 
 - Relatório real do usuário `GERACAO_API | HTTP 402` revelou classificação imprecisa na interface; HTTP 402 normalmente representa pagamento requerido ou saldo insuficiente, não confirma bloqueio da voz.
@@ -119,4 +127,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.16+16. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.18+18. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

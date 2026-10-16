@@ -40,6 +40,13 @@ class AppDiagnostics extends ChangeNotifier {
 
   List<DiagnosticEntry> get entries => List.unmodifiable(_entries.reversed);
 
+  static bool isVoiceEvent(DiagnosticEntry entry) =>
+      entry.category.startsWith('VOZ_') || entry.category.startsWith('VOZES_');
+
+  List<DiagnosticEntry> filteredEntries({bool voiceOnly = false}) =>
+      voiceOnly ? entries.where(isVoiceEvent).toList(growable: false) : entries;
+
+
   Future<void> restore() async {
     _prefs = await SharedPreferences.getInstance();
     try {
@@ -104,14 +111,16 @@ class AppDiagnostics extends ChangeNotifier {
   @visibleForTesting
   Future<void> flush() => _pendingWrite;
 
-  String report({String version = 'desconhecida'}) {
+  String report({String version = 'desconhecida', bool voiceOnly = false}) {
+    final selected = filteredEntries(voiceOnly: voiceOnly);
     final out = StringBuffer('Uai Vozes | Diagnóstico local\n')
       ..writeln('Versão: $version')
       ..writeln('Gerado: ${DateTime.now().toIso8601String()}')
-      ..writeln('Registros: ${_entries.length}')
-      ..writeln('Privacidade: não inclui chave API, textos, cabeçalhos ou corpos HTTP.')
+      ..writeln('Filtro: ${voiceOnly ? 'eventos de vozes' : 'todos os eventos'}')
+      ..writeln('Registros: ${selected.length}')
+      ..writeln('Privacidade: não inclui chave API, textos, nomes/IDs de vozes, cabeçalhos ou corpos HTTP.')
       ..writeln('---');
-    for (final item in entries) {
+    for (final item in selected) {
       out.writeln('[${item.time.toLocal().toIso8601String()}] '
           '${item.kind} • ${item.category} • ${item.detail}');
     }

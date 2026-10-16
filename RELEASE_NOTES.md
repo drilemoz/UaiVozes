@@ -1,10 +1,10 @@
-# Uai Vozes v0.16 (alpha.16)
+# Uai Vozes v0.17 (alpha.17)
 
-Filtro conservador de compatibilidade de vozes com o plano informado pela ElevenLabs.
+Diagnóstico de bloqueios e recusas de acesso a vozes, com captura segura e sem gastos extras de créditos.
 
-- Explorador de Vozes: **Compatíveis com meu plano**, **Restritas** e **A confirmar**; combinam com busca, filtros existentes e favoritas, sem requisição TTS.
-- **Compatível segundo a API** só quando `available_for_tiers` contém seu plano. Não representa voz gratuita nem promessa de geração, saldo ou modelo liberado.
-- **Verificar acesso** consulta detalhes de uma voz individual por GET somente quando solicitado, sem gerar áudio. Dados inconclusivos continuam "A confirmar".
-- No plano Free, a Voice Library pública não está disponível pela API segundo a ElevenLabs; prévias e permissão de compartilhar não liberam TTS. Voz já na conta não é bloqueada só por `free_users_allowed: false`.
-- Botão para consultar a assinatura, tratamento de respostas antigas após troca de chave e aviso de que o filtro observa somente páginas carregadas.
-- Preservados pacote Android, quatro Secrets, certificado, áudios, rascunhos e preferências. Nenhuma biblioteca nova. Testes Flutter e APK permanecem pendentes de GitHub Actions.
+- Registra restrições quando o usuário tenta selecionar/gerar com voz restrita e quando uma consulta manual de detalhes confirma a restrição.
+- Captura HTTP e motivo de erro permitido nas verificações e gerações rejeitadas. HTTP 402 isolado sinaliza cobrança/créditos a verificar, não bloqueio confirmado.
+- Sobre > Diagnóstico local: filtro **Somente eventos de vozes**, Copiar e Exportar respeitando o filtro.
+- Referência anônima da voz para relacionar eventos, sem guardar nome, ID original, texto, chave API, resposta remota ou cabeçalhos.
+- Sem novas requisições TTS, dependências, migrações ou alteração de certificado e Secrets.
+- APK/testes Flutter desta versão ainda não executados; conferir no GitHub Actions.

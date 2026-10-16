@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.17': [
+    'Diagnóstico registra bloqueios de vozes ao selecionar, verificar ou gerar, sem expor nome, ID nem chave.',
+    'HTTP 402 e acesso desconhecido continuam separados de bloqueios confirmados.',
+    'Sobre > Diagnóstico local permite filtrar, copiar e exportar eventos de vozes.',
+  ],
   '0.1.0-alpha.16': [
     'Explorador de Vozes: filtros Compatíveis com meu plano, Restritas e A confirmar.',
     'Compatibilidade indicada somente com nível do plano listado pela API; nunca equivale a geração grátis.',
