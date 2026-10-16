@@ -55,6 +55,25 @@ void main() {
     api.dispose();
   });
 
+  test('Verificar detalhes é GET isolado, sem POST TTS e sem apresentar acesso inventado', () async {
+    var calls = 0;
+    final api = ElevenApi(() async => 'key-test', client: MockClient((request) async {
+      calls++;
+      expect(request.method, 'GET');
+      expect(request.url.path, '/v1/voices/voz-1');
+      return http.Response(jsonEncode({
+        'voice_id':'voz-1', 'name':'Detalhe',
+        'available_for_tiers':['creator','enterprise'],
+        'sharing':{'free_users_allowed':false},
+      }),200,headers:{'content-type':'application/json; charset=utf-8'});
+    }));
+    final detail = await api.voiceDetail('voz-1');
+    expect(detail.availableForTiers, contains('creator'));
+    expect(detail.freeUsersAllowed,false);
+    expect(calls,1);
+    api.dispose();
+  });
+
   test('Cache de vozes expira em três minutos, sem persistência', () {
     var clock = DateTime.utc(2026, 10, 16, 8);
     final cache = VoiceBrowseCache(clock: () => clock);

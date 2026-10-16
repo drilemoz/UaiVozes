@@ -1,5 +1,5 @@
 name: uaivozes
-version: 0.1.0-alpha.15+15
+version: 0.1.0-alpha.16+16
 description: Uai Vozes - estúdio leve de texto para fala com a API ElevenLabs.
 publish_to: none
 environment:

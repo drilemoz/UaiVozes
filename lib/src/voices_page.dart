@@ -51,6 +51,9 @@ class _VoicesPageState extends State<VoicesPage> {
   final cache = VoiceBrowseCache();
   final List<Voice> ownVoices = [];
   final List<Voice> ranking = [];
+  final Map<String, Voice> verifiedVoices = {};
+  final Set<String> checkingVoices = {};
+  VoiceAccessFilter accessFilter = VoiceAccessFilter.all;
   Timer? searchDebounce;
   StreamSubscription<PlayerState>? playerStateSubscription;
   String category = 'all';
@@ -69,12 +72,18 @@ class _VoicesPageState extends State<VoicesPage> {
   int previewVersion = 0;
   late String observedKey;
   late String observedLanguage;
+  late String observedTier;
+  late bool observedRefreshingUsage;
+  String? observedUsageError;
 
   @override
   void initState() {
     super.initState();
     observedKey = widget.model.key;
     observedLanguage = widget.model.language;
+    observedTier = widget.model.subscription?.tier ?? '';
+    observedRefreshingUsage = widget.model.refreshingUsage;
+    observedUsageError = widget.model.usageError;
     widget.model.addListener(onModelUpdated);
     playerStateSubscription = previewPlayer.playerStateStream.listen((state) {
       if (mounted && state.processingState == ProcessingState.completed) {
@@ -86,14 +95,30 @@ class _VoicesPageState extends State<VoicesPage> {
   }
 
   void onModelUpdated() {
-    if (observedKey == widget.model.key && observedLanguage == widget.model.language) return;
+    final keyChanged = observedKey != widget.model.key;
+    final languageChanged = observedLanguage != widget.model.language;
+    final nextTier = widget.model.subscription?.tier ?? '';
+    final tierChanged = observedTier != nextTier;
+    final usageChanged = observedRefreshingUsage != widget.model.refreshingUsage ||
+        observedUsageError != widget.model.usageError;
+    if (!keyChanged && !languageChanged && !tierChanged && !usageChanged) return;
     observedKey = widget.model.key;
     observedLanguage = widget.model.language;
-    cache.clear(); // metadados de uma conta não devem aparecer em outra.
-    requestVersion++;
-    previewVersion++;
-    unawaited(previewPlayer.stop());
-    unawaited(refresh());
+    observedTier = nextTier;
+    observedRefreshingUsage = widget.model.refreshingUsage;
+    observedUsageError = widget.model.usageError;
+    if (keyChanged || languageChanged) {
+      cache.clear(); // dados e detalhes de outra conta/idioma não são reutilizados.
+      verifiedVoices.clear();
+      checkingVoices.clear();
+      requestVersion++;
+      previewVersion++;
+      unawaited(previewPlayer.stop());
+      unawaited(refresh());
+    } else if (mounted) {
+      // O plano mudou após GET /v1/user/subscription: recalcular filtro local.
+      setState(() {});
+    }
   }
 
   @override
@@ -147,7 +172,7 @@ class _VoicesPageState extends State<VoicesPage> {
     final request = ++requestVersion;
     final activeKey = widget.model.key;
     final activeLanguage = widget.model.language;
-    if (force) cache.clear();
+    if (force) { cache.clear(); verifiedVoices.clear(); checkingVoices.clear(); }
     setState(() {
       loading = true;
       loadingMore = false;
@@ -250,8 +275,40 @@ class _VoicesPageState extends State<VoicesPage> {
     }
   }
 
+  /// GET individual, somente por toque. Nunca executa TTS nem inicia
+  /// uma verificação em lote ao filtrar ou paginar.
+  Future<void> verifyVoice(Voice voice) async {
+    if (checkingVoices.contains(voice.id) || widget.model.key.isEmpty) return;
+    final key = widget.model.key;
+    final revision = requestVersion;
+    setState(() => checkingVoices.add(voice.id));
+    try {
+      final detail = await widget.model.api.voiceDetail(voice.id);
+      if (!mounted || revision != requestVersion || key != widget.model.key) return;
+      setState(() => verifiedVoices[voice.id] =
+          mergeVoiceAccessMetadata(voice, detail));
+      final info = evaluateVoiceAccess(verifiedVoices[voice.id]!,
+          widget.model.subscription?.tier, publicLibrary: rankingMode);
+      if (info.state == VoiceAccess.unknown) {
+        notice(context, 'A API não confirmou o acesso a esta voz.');
+      }
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('VOZES_DETALHE', e, stack);
+      if (mounted && revision == requestVersion && key == widget.model.key) {
+        notice(context, 'Não foi possível consultar os detalhes: ${friendlyError(e)}');
+      }
+    } finally {
+      if (mounted && revision == requestVersion && key == widget.model.key) {
+        setState(() => checkingVoices.remove(voice.id));
+      }
+    }
+  }
+
+  VoiceAccessInfo accessFor(Voice voice) => evaluateVoiceAccess(voice,
+      widget.model.subscription?.tier, publicLibrary: rankingMode);
+
   Future<void> select(Voice voice) async {
-    final access = evaluateVoiceAccess(voice, widget.model.subscription?.tier);
+    final access = accessFor(voice);
     if (access.isRestricted) {
       if (mounted) await showModalBottomSheet<void>(context: context,
         showDragHandle: true, builder: (ctx) => SafeArea(child: Padding(
@@ -295,6 +352,7 @@ class _VoicesPageState extends State<VoicesPage> {
 
   bool matches(Voice voice) {
     if (favoritesOnly && !widget.model.favoriteIds.contains(voice.id)) return false;
+    if (!matchesVoiceAccessFilter(accessFilter, accessFor(voice))) return false;
     if (rankingMode) {
       final query = searchController.text.trim().toLowerCase();
       if (query.isNotEmpty &&
@@ -360,9 +418,11 @@ class _VoicesPageState extends State<VoicesPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final visible = (rankingMode ? ranking : ownVoices).where(matches).toList();
+    final allLoaded = (rankingMode ? ranking : ownVoices)
+        .map((voice) => verifiedVoices[voice.id] ?? voice).toList();
+    final visible = allLoaded.where(matches).toList();
     final filterActive = category != 'all' || voiceStyle != 'all' || gender != 'all' ||
-        age != 'all' || accent != 'all';
+        age != 'all' || accent != 'all' || accessFilter != VoiceAccessFilter.all;
     return SafeArea(child: RefreshIndicator(
       onRefresh: () => refresh(force: true),
       child: ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 26), children: [
@@ -409,6 +469,21 @@ class _VoicesPageState extends State<VoicesPage> {
               if (!rankingMode) {setState(() { rankingMode = true; age = 'all'; }); unawaited(refresh());}
             }),
           ])),
+        const SizedBox(height: 8),
+        SingleChildScrollView(scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _chip('Todas', accessFilter == VoiceAccessFilter.all,
+              () => setState(() => accessFilter = VoiceAccessFilter.all)),
+            const SizedBox(width: 6),
+            _chip('Compatíveis com meu plano', accessFilter == VoiceAccessFilter.compatible,
+              () => setState(() => accessFilter = VoiceAccessFilter.compatible)),
+            const SizedBox(width: 6),
+            _chip('Restritas', accessFilter == VoiceAccessFilter.restricted,
+              () => setState(() => accessFilter = VoiceAccessFilter.restricted)),
+            const SizedBox(width: 6),
+            _chip('A confirmar', accessFilter == VoiceAccessFilter.unknown,
+              () => setState(() => accessFilter = VoiceAccessFilter.unknown)),
+          ])),
         if (filterActive) Padding(padding: const EdgeInsets.symmetric(vertical: 9),
           child: Row(children: [
             Icon(Icons.filter_list_rounded, color: theme.colorScheme.primary, size: 19),
@@ -416,18 +491,30 @@ class _VoicesPageState extends State<VoicesPage> {
             const Expanded(child: Text('Filtros ativos')),
             TextButton(onPressed: () {
               setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
-                age = 'all'; accent = 'all';});
+                age = 'all'; accent = 'all'; accessFilter = VoiceAccessFilter.all;});
               unawaited(refresh());
             }, child: const Text('Limpar')),
           ])),
         Padding(padding: const EdgeInsets.symmetric(vertical: 11),
           child: Text(rankingMode
               ? 'Top 10 real por uso no último ano; depende da permissão da conta. A busca filtra somente este Top 10.'
-              : 'Busca e filtros consultam a API. Use “Carregar mais” para outras páginas; estilos são filtrados pelos metadados disponíveis.',
+              : 'Busca e filtros de catálogo consultam a API. Compatibilidade é avaliada somente nas páginas carregadas, sem testar geração. Consulte detalhes de vozes a confirmar.',
             style: theme.textTheme.bodySmall)),
-        if (widget.model.subscription == null && widget.model.key.isNotEmpty)
-          Padding(padding: const EdgeInsets.only(bottom: 7), child: Text(
-            'Plano ainda não consultado: toque em Ajustes → Conta para verificar a disponibilidade.',
+        if ((widget.model.subscription == null ||
+             const ['desconhecido', 'unknown', ''].contains(
+                 widget.model.subscription!.tier.trim().toLowerCase())) &&
+            widget.model.key.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(bottom: 7), child: Row(children: [
+            Expanded(child: Text('Plano desconhecido: consulte a assinatura para usar o filtro de compatibilidade.',
+              style: theme.textTheme.bodySmall)),
+            TextButton(onPressed: widget.model.refreshingUsage ? null : () =>
+                unawaited(widget.model.refreshUsage()),
+              child: Text(widget.model.refreshingUsage ? 'Consultando…' : 'Consultar plano')),
+          ])),
+        if (accessFilter != VoiceAccessFilter.all && widget.model.key.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(
+            '${visible.length} de ${allLoaded.length} vozes carregadas correspondem ao filtro. '
+            'Sem garantia de acesso ao modelo, créditos ou custo.',
             style: theme.textTheme.bodySmall)),
         if (widget.model.key.isEmpty)
           EmptyState(icon: Icons.key_rounded, title: 'Conecte sua conta',
@@ -444,11 +531,19 @@ class _VoicesPageState extends State<VoicesPage> {
           EmptyState(icon: Icons.mic_off_outlined, title: 'Nenhuma voz encontrada',
             description: loadingMore ? 'Buscando...' : rankingMode
                 ? 'Sem dados para este idioma e filtro. O ranking pode exigir outro plano.'
-                : 'A API não retornou vozes com estes filtros nesta página.',
+                : accessFilter == VoiceAccessFilter.compatible
+                    ? 'Nenhuma compatibilidade comprovada nas páginas carregadas. '
+                      'Use “A confirmar” e consulte os detalhes de uma voz por vez.'
+                    : accessFilter == VoiceAccessFilter.unknown
+                      ? 'Nenhuma voz pendente de confirmação nas páginas carregadas.'
+                      : accessFilter == VoiceAccessFilter.restricted
+                        ? 'Nenhuma restrição identificada nas páginas carregadas.'
+                        : 'A API não retornou vozes com estes filtros nesta página.',
             action: OutlinedButton(onPressed: () {
               searchDebounce?.cancel(); searchController.clear();
               setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
-                age = 'all'; accent = 'all'; favoritesOnly = false;});
+                age = 'all'; accent = 'all'; favoritesOnly = false;
+                accessFilter = VoiceAccessFilter.all;});
               unawaited(refresh(force: true));
             }, child: const Text('Limpar filtros')))
         else ...visible.map((voice) => Padding(padding: const EdgeInsets.only(bottom: 10),
@@ -464,18 +559,34 @@ class _VoicesPageState extends State<VoicesPage> {
                 Text(voice.summary.isEmpty ? 'Voz ElevenLabs' : voice.summary,
                   maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
                 Builder(builder: (ctx) {
-                  final info = evaluateVoiceAccess(voice, widget.model.subscription?.tier);
+                  final info = accessFor(voice);
                   return Wrap(spacing: 7, runSpacing: 3, children: [
-                    if (info.isRestricted) Text(info.label,
-                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error,
-                        fontWeight: FontWeight.bold))
-                    else Text(info.label, style: theme.textTheme.labelSmall),
+                    Text(info.label, style: theme.textTheme.labelSmall?.copyWith(
+                      color: info.isRestricted ? theme.colorScheme.error
+                          : info.isCompatible ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontWeight: info.state == VoiceAccess.unknown
+                          ? FontWeight.normal : FontWeight.bold)),
                     if (info.specialRate) Text('Tarifa específica: conferir custo',
                         style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
                   ]);
                 }),
                 if (rankingMode && voice.annualCharacters != null)
                   Text('${voice.annualCharacters} caracteres/ano', style: theme.textTheme.labelSmall),
+                if (accessFor(voice).state == VoiceAccess.unknown)
+                  Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+                    onPressed: checkingVoices.contains(voice.id) ? null : () => verifyVoice(voice),
+                    icon: checkingVoices.contains(voice.id)
+                      ? const SizedBox(width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.fact_check_outlined, size: 17),
+                    label: const Text('Verificar acesso'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )),
               ]))),
             IconButton(tooltip: 'Ouvir prévia', onPressed: () => preview(voice),
               icon: Icon(playingId == voice.id ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,

@@ -1,10 +1,10 @@
-# Uai Vozes v0.15 (alpha.15)
+# Uai Vozes v0.16 (alpha.16)
 
-Correção de diagnóstico de geração HTTP 402 pela ElevenLabs, sem alterar cobrança ou permissões reais da conta.
+Filtro conservador de compatibilidade de vozes com o plano informado pela ElevenLabs.
 
-- `GERACAO_API | HTTP 402` agora orienta conferir saldo/pagamento; não presume bloqueio de voz.
-- Extrai códigos conhecidos do campo `detail.code` oficial, com fallback para `detail.status` antigo. `insufficient_credits` indica saldo insuficiente confirmado; códigos de assinatura/acesso recebem orientações específicas.
-- O painel de falha permite abrir Créditos e consumo e atualizar os dados da conta, sem disparar nova geração de áudio.
-- Protege chave, texto, mensagens e detalhes não permitidos nas exceções e relatórios; nenhuma retentativa automática cobrável.
-- Mantém assinatura existente, Secrets, biblioteca e pacote Android; testes Flutter e compilação APK pendentes do workflow.
-
+- Explorador de Vozes: **Compatíveis com meu plano**, **Restritas** e **A confirmar**; combinam com busca, filtros existentes e favoritas, sem requisição TTS.
+- **Compatível segundo a API** só quando `available_for_tiers` contém seu plano. Não representa voz gratuita nem promessa de geração, saldo ou modelo liberado.
+- **Verificar acesso** consulta detalhes de uma voz individual por GET somente quando solicitado, sem gerar áudio. Dados inconclusivos continuam "A confirmar".
+- No plano Free, a Voice Library pública não está disponível pela API segundo a ElevenLabs; prévias e permissão de compartilhar não liberam TTS. Voz já na conta não é bloqueada só por `free_users_allowed: false`.
+- Botão para consultar a assinatura, tratamento de respostas antigas após troca de chave e aviso de que o filtro observa somente páginas carregadas.
+- Preservados pacote Android, quatro Secrets, certificado, áudios, rascunhos e preferências. Nenhuma biblioteca nova. Testes Flutter e APK permanecem pendentes de GitHub Actions.

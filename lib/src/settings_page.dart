@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.16': [
+    'Explorador de Vozes: filtros Compatíveis com meu plano, Restritas e A confirmar.',
+    'Compatibilidade indicada somente com nível do plano listado pela API; nunca equivale a geração grátis.',
+    'Consulta manual dos detalhes da voz por GET, sem geração de áudio ou consumo de créditos TTS.',
+  ],
   '0.1.0-alpha.15': [
     'HTTP 402 agora orienta verificar créditos ou cobrança, sem presumir bloqueio de voz.',
     'Códigos de erro da ElevenLabs são reconhecidos com segurança, sem copiar mensagens privadas.',

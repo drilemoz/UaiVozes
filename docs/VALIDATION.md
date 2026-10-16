@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.15+15
+# Validação da versão 0.1.0-alpha.16+16
 
 ## Evidências do workflow #13, 16/10/2026
 
@@ -148,3 +148,10 @@ Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero iss
 - Garantir que status 402 sem código não afirme voz bloqueada; `insufficient_credits` só quando explicitamente informado.
 - Verificar que nenhuma resposta de erro causa segunda requisição POST TTS e que mensagens privadas não aparecem no diagnóstico.
 - `flutter analyze`, `flutter test`, `flutter build apk` e testes no aparelho ainda pendentes nesta distribuição local.
+
+## Alpha.16: filtro por compatibilidade de vozes
+
+- Executar os casos Flutter em `test/voice_access_test.dart`: tiers explícitos, conta desconhecida, biblioteca pública Free, flags de compartilhamento, filtros, mesclagem de detalhes e estados desconhecidos.
+- Verificar na UI que filtros de acesso compõem com favoritas, busca e paginação, exibem apenas resultados carregados, e que "Verificar acesso" usa GET (sem TTS), mantendo o estado indeterminado quando metadados faltam.
+- Confirmar que a assinatura consultada reavalia as categorias e que chave/idioma trocados impedem aplicar detalhes antigos.
+- Não há Flutter SDK Android local: análise, `flutter test`, build APK e execução em dispositivo precisam do workflow.

@@ -2,11 +2,20 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.15+15** · APK pretendido: **Uai-Vozes-v0.15.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.16+16** · APK pretendido: **Uai-Vozes-v0.16.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.16 (filtro de compatibilidade de vozes)
+
+- Novo filtro local de acesso: Todas, **Compatíveis com meu plano**, Restritas e A confirmar; usa exclusivamente os resultados já carregados e o tier da assinatura consultada. Paginação e busca global continuam funcionando, sem insinuar que uma página abrange todo o catálogo.
+- Compatível segundo a API requer `available_for_tiers` contendo explicitamente o nível da assinatura. É indício de acesso à voz, **não** prova de créditos, geração gratuita, custos ou liberação do modelo.
+- A informação `free_users_allowed` regula novas adições de vozes compartilhadas por Free, não deve bloquear a síntese de uma voz já existente em Minhas vozes. Segundo a documentação da ElevenLabs, a biblioteca pública não está disponível via API para Free.
+- Vozes sem metadados suficientes ficam **A confirmar** e têm botão manual para consultar `GET /v1/voices/:voice_id`, sem chamadas TTS. Informações recebidas ficam somente na memória e não sobrescrevem nome, ranking, favoritos ou dados pessoais; troca de conta/idioma descarta dados antigos.
+- Se a assinatura ainda não foi consultada, botão **Consultar plano** faz somente a consulta de uso/assinatura. Mudança do plano recalcula os filtros sem chamadas TTS.
+- Sem dependências ou migração, preservando assinatura, Secrets, rascunhos e biblioteca. Verificação Flutter e build APK pendentes do Actions.
 
 ## Novidades da alpha.15 (diagnóstico de HTTP 402)
 
@@ -113,12 +122,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.15.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.16.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.15:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.16:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

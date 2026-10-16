@@ -1,6 +1,6 @@
 # Histórico de versões
 
-## 0.1.0-alpha.15+15 · 16/10/2026
+## 0.1.0-alpha.16+16 · 16/10/2026
 
 - Relatório real do usuário `GERACAO_API | HTTP 402` revelou classificação imprecisa na interface; HTTP 402 normalmente representa pagamento requerido ou saldo insuficiente, não confirma bloqueio da voz.
 - Atualizado `_fail` para preferir `detail.code` da documentação atual da ElevenLabs, com fallback ao `detail.status` legado, e aceitar apenas motivos explicitamente listados. Adicionado suporte a `insufficient_credits`, `subscription_required`, `feature_not_available`, `voice_access_denied`, `model_access_denied` e `insufficient_permissions`.
@@ -119,4 +119,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.15+15. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.16+16. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
