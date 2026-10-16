@@ -8,11 +8,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'eleven_api.dart';
+import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.2';
-  static const versionCode = 2;
+  static const version = '0.1.0-alpha.3';
+  static const versionCode = 3;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -34,7 +35,8 @@ class AppModel extends ChangeNotifier {
     _prefs = await SharedPreferences.getInstance();
     try {
       key = await _storage.read(key: 'elevenlabs_api_key') ?? '';
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('ARMAZENAMENTO_API', e, stack);
       key = '';
     }
     themeMode = switch (_prefs?.getString('theme')) {
@@ -53,7 +55,8 @@ class AppModel extends ChangeNotifier {
         final voice = Voice.fromJson(json);
         if (voice.id.isNotEmpty) selectedVoice = voice;
       }
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('PREFERENCIAS_VOZ', e, stack);
       selectedVoice = null;
     }
     library.addAll(decodeAudioRecords(_prefs?.getString('library') ?? '[]'));

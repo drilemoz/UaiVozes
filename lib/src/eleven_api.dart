@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'models.dart';
+import 'diagnostics.dart';
 
 class ElevenApiException implements Exception {
   const ElevenApiException(this.message, [this.statusCode]);
@@ -11,6 +12,19 @@ class ElevenApiException implements Exception {
   final int? statusCode;
   @override
   String toString() => message;
+}
+
+String friendlyError(Object error) {
+  if (error is ElevenApiException) {
+    return switch (error.statusCode) {
+      401 => 'chave inválida ou sem permissão',
+      402 || 403 => 'recurso indisponível para seu plano ou chave',
+      429 => 'limite da API ou créditos atingidos',
+      _ => error.statusCode == null ? 'sem conexão ou chave não configurada' :
+        'servidor respondeu HTTP ${error.statusCode}',
+    };
+  }
+  return 'erro interno (consulte o diagnóstico local)';
 }
 
 class Subscription {
@@ -55,6 +69,7 @@ class ElevenApi {
       // Mensagem humana padronizada. Não expõe cabeçalhos/chave.
     }
     final code = response.statusCode;
+    AppDiagnostics.instance.failure('API_HTTP', 'HTTP $code (sem resposta sensível).');
     if (code == 401) {
       throw ElevenApiException('Chave API inválida ou sem permissão.', code);
     }
@@ -87,7 +102,8 @@ class ElevenApi {
       return response;
     } on ElevenApiException {
       rethrow;
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('API_REDE', e, stack);
       throw const ElevenApiException('Falha de conexão. Verifique sua internet.');
     }
   }
@@ -172,7 +188,8 @@ class ElevenApi {
       return id;
     } on ElevenApiException {
       rethrow;
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('API_ADICIONAR_VOZ', e, stack);
       throw const ElevenApiException('Não foi possível adicionar a voz.');
     }
   }
@@ -206,7 +223,8 @@ class ElevenApi {
       return response.bodyBytes;
     } on ElevenApiException {
       rethrow;
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('API_GERAR_AUDIO', e, stack);
       // Não há retentativa automática: uma solicitação pode ter consumido créditos.
       throw const ElevenApiException(
           'Não foi possível concluir a geração. Consulte seus créditos antes de repetir.');

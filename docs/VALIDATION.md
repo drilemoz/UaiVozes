@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.2+2
+# Validação da versão 0.1.0-alpha.3+3
 
 ## Causa do workflow anterior
 
@@ -9,6 +9,13 @@ O workflow `Gerar APK Eleven` #1 concluiu a instalação do Flutter SDK 3.47.7 e
 Os três `RadioListTile<ThemeMode>` ficam sob `RadioGroup<ThemeMode>` com `groupValue` e `onChanged` apenas no ancestral. Com Flutter >=3.35, este é o padrão suportado oficialmente. O workflow fixa Flutter 3.47.7 para reduzir variações entre compilações.
 
 Também foram alterados o identificador Android (`com.drilemoz.uaivozes`), o pacote Flutter (`uaivozes`), os nomes exibidos, as notas, o workflow, o ícone de launcher nativo do Android e os metadados de versão.
+
+## Novidades alpha.3
+
+- `url_launcher` abre o endereço oficial das chaves API no navegador.
+- Feedback de salvar/testar chave aparece dentro do wizard (não fica escondido atrás do modal) e em Configurações.
+- Diagnóstico em Sobre registra exceções de framework/Dart, rede e operações tratadas; conteúdo é saneado para impedir cópia de chaves e textos. O registro usa armazenamento local limitado a 100 eventos e exportação voluntária via Sharesheet.
+- Testes novos cobrem privacidade, limite do histórico, mensagens seguras e link oficial.
 
 ## Pendências
 

@@ -18,12 +18,12 @@ void main() {
     expect(identity['versionCode'], AppModel.versionCode);
     expect(manager['projectName'], identity['name']);
     expect(manager['versionCode'], identity['versionCode']);
-    expect(manager['apkFileName'], 'Uai-Vozes-v0.02.apk');
+    expect(manager['apkFileName'], 'Uai-Vozes-v0.03.apk');
     expect(pubspec, contains('name: uaivozes'));
-    expect(pubspec, contains('version: 0.1.0-alpha.2+2'));
+    expect(pubspec, contains('version: 0.1.0-alpha.3+3'));
     expect(manifest, contains('android:label="Uai, Vozes"'));
     expect(manifest, contains('@android:drawable/ic_btn_speak_now'));
-    expect(workflow, contains('dist/Uai-Vozes-v0.02.apk'));
+    expect(workflow, contains('dist/Uai-Vozes-v0.03.apk'));
     expect(releaseNotes.keys.first, AppModel.version);
   });
 }

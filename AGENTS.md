@@ -8,3 +8,5 @@
 - Não repetir chamada TTS automaticamente, pois pode consumir créditos duplicados.
 - Compilar APK separado do ZIP de código no artifact GitHub Actions e/ou Release.
 - Validar flutter analyze, flutter test e build Android no GitHub Actions antes de afirmar APK testado.
+
+- Diagnósticos: não registrar chaves, cabeçalhos, corpo HTTP, prompts/textos e caminhos externos. Limitar histórico a 100 eventos com exportação controlada pelo usuário.

@@ -2,7 +2,7 @@
 
 Uai, Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades e preto AMOLED real.
 
-Versão: **0.1.0-alpha.2+2** · APK pretendido: **Uai-Vozes-v0.02.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.3+3** · APK pretendido: **Uai-Vozes-v0.03.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
@@ -15,7 +15,9 @@ Identidade do launcher: **ícone de microfone nativo do Android** (`@android:dra
 - Top 10 por idioma/categoria, com **ordenação real por `usage_character_count_1y`**, via `GET /v1/shared-voices`. Não simula rankings se não autorizado.
 - Adição consentida de voz compartilhada à conta antes da conversão.
 - Biblioteca de MP3 salvos em diretório privado, reprodução e compartilhamento/exportação via menu Android.
-- Chave API segura via Android Keystore; botão colar, copiar (com aviso), mostrar, testar e remover.
+- Chave API segura via Android Keystore; colar, copiar, mostrar, testar, remover e abrir o link oficial para obter uma chave.
+- Mensagens visíveis dentro do assistente e nas Configurações para salvar/testar a chave.
+- Sobre → Diagnóstico local: erros do Flutter, rede, geração e reprodução, até 100 eventos; copiar, exportar TXT, fechar e limpar.
 - Branco, preto AMOLED, tema do sistema; wizard inicial; pop-ups e novidades pós-atualização; sobre e Pix.
 
 ## Compilar
@@ -29,7 +31,7 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.02.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.03.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai, Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.

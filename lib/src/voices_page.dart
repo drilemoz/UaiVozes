@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
+import 'diagnostics.dart';
 import 'models.dart';
 import 'ui.dart';
 
@@ -101,7 +102,8 @@ class _VoicesPageState extends State<VoicesPage> {
         ownVoices.addAll(result.voices);
         nextToken = result.nextToken;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('VOZES_CARREGAR', e, stack);
       if (mounted) error = '$e';
     } finally {
       if (mounted) setState(() => loading = false);
@@ -117,7 +119,8 @@ class _VoicesPageState extends State<VoicesPage> {
       if (!mounted) return;
       ownVoices.addAll(result.voices);
       nextToken = result.nextToken;
-    } catch (e) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('VOZES_REDE', e, stack);
       if (mounted) notice(context, '$e');
     } finally {
       if (mounted) setState(() => loading = false);
@@ -149,7 +152,8 @@ class _VoicesPageState extends State<VoicesPage> {
       if (!mounted) return;
       setState(() => playingId = voice.id);
       await previewPlayer.play();
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('VOZES_PREVIA', e, stack);
       if (mounted) notice(context, 'Não foi possível ouvir a prévia.');
     }
   }
@@ -172,7 +176,8 @@ class _VoicesPageState extends State<VoicesPage> {
         ));
         if (mounted) notice(context, 'Voz adicionada à conta.');
         widget.onChosen();
-      } catch (e) {
+      } catch (e, stack) {
+        AppDiagnostics.instance.capture('VOZES_SELECIONAR', e, stack);
         if (mounted) notice(context, '$e');
       }
       return;

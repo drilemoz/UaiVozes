@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
+import 'diagnostics.dart';
 import 'models.dart';
 import 'ui.dart';
 
@@ -79,7 +80,8 @@ class _StudioPageState extends State<StudioPage> {
       if (!mounted) return;
       setState(() => lastAudio = audio);
       notice(context, 'Áudio gerado e salvo na biblioteca.');
-    } catch (e) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('ESTUDIO_GERAR', e, stack);
       if (mounted) notice(context, '$e');
     } finally {
       if (mounted) setState(() => generating = false);
@@ -97,7 +99,8 @@ class _StudioPageState extends State<StudioPage> {
         }
         await player.play();
       }
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('ESTUDIO_REPRODUZIR', e, stack);
       if (mounted) notice(context, 'Falha ao reproduzir o áudio salvo.');
     }
   }

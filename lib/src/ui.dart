@@ -73,6 +73,32 @@ class UaiVozesCard extends StatelessWidget {
       );
 }
 
+class InlineFeedback extends StatelessWidget {
+  const InlineFeedback({super.key, required this.message, this.isError = false});
+  final String message;
+  final bool isError;
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(liveRegion: true, child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isError ? colors.errorContainer : colors.primaryContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+          color: isError ? colors.onErrorContainer : colors.onPrimaryContainer),
+        const SizedBox(width: 10),
+        Expanded(child: Text(message, style: TextStyle(
+          color: isError ? colors.onErrorContainer : colors.onPrimaryContainer,
+          fontWeight: FontWeight.w600))),
+      ]),
+    ));
+  }
+}
+
 class SectionTitle extends StatelessWidget {
   const SectionTitle(this.text, {super.key, this.action});
   final String text;

@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'app_model.dart';
+import 'diagnostics.dart';
 import 'models.dart';
 import 'ui.dart';
 
@@ -59,7 +60,8 @@ class _LibraryPageState extends State<LibraryPage> {
       }
       setState(() => current = item.id);
       await player.play();
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('BIBLIOTECA_REPRODUZIR', e, stack);
       if (mounted) notice(context, 'Arquivo de áudio indisponível.');
     }
   }
@@ -100,7 +102,8 @@ class _LibraryPageState extends State<LibraryPage> {
     try {
       await widget.model.deleteAudio(item);
       if (mounted) notice(context, 'Áudio excluído.');
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('BIBLIOTECA_EXCLUIR', e, stack);
       if (mounted) notice(context, 'Não foi possível remover o arquivo.');
     }
   }
@@ -113,7 +116,8 @@ class _LibraryPageState extends State<LibraryPage> {
     try {
       await Share.shareXFiles([XFile(item.path, mimeType: 'audio/mpeg')],
           subject: item.name);
-    } catch (_) {
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('BIBLIOTECA_EXPORTAR', e, stack);
       if (mounted) notice(context, 'Não foi possível compartilhar o arquivo.');
     }
   }

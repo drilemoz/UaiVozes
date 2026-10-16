@@ -1,18 +1,38 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'src/app_model.dart';
+import 'src/diagnostics.dart';
+import 'src/eleven_links.dart';
+import 'src/eleven_api.dart';
 import 'src/library_page.dart';
 import 'src/settings_page.dart';
 import 'src/studio_page.dart';
 import 'src/ui.dart';
 import 'src/voices_page.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final model = AppModel();
-  await model.load();
-  runApp(UaiVozesApp(model: model));
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final diagnostics = AppDiagnostics.instance;
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      diagnostics.capture('FLUTTER_UI', details.exception, details.stack);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      diagnostics.capture('DART_NAO_TRATADO', error, stack);
+      return true;
+    };
+    await diagnostics.restore();
+    final model = AppModel();
+    await model.load();
+    runApp(UaiVozesApp(model: model));
+  }, (error, stack) {
+    AppDiagnostics.instance.capture('ZONA_NAO_TRATADA', error, stack);
+  });
 }
 
 class UaiVozesApp extends StatelessWidget {
@@ -113,6 +133,11 @@ class _WizardSheetState extends State<WizardSheet> {
   int step = 0;
   bool busy = false;
   bool reveal = false;
+  String feedback = '';
+  bool feedbackError = false;
+  void updateFeedback(String value, {bool error = false}) {
+    if (mounted) setState(() { feedback = value; feedbackError = error; });
+  }
   late final TextEditingController keyController = TextEditingController(text: widget.model.key);
 
   @override
@@ -123,12 +148,19 @@ class _WizardSheetState extends State<WizardSheet> {
 
   Future<void> save() async {
     if (busy) return;
+    if (keyController.text.trim().isEmpty) {
+      updateFeedback('Cole sua chave antes de guardar.', error: true);
+      return;
+    }
     setState(() => busy = true);
+    updateFeedback('Guardando chave…');
     try {
       await widget.model.setKey(keyController.text);
-      if (mounted) notice(context, 'Chave armazenada.');
-    } catch (_) {
-      if (mounted) notice(context, 'Não foi possível guardar a chave API.');
+      AppDiagnostics.instance.info('CHAVE_API', 'Chave armazenada com sucesso.');
+      updateFeedback('Chave guardada com segurança.');
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('CHAVE_GUARDAR', e, stack);
+      updateFeedback('Não foi possível guardar a chave API.', error: true);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -144,13 +176,20 @@ class _WizardSheetState extends State<WizardSheet> {
 
   Future<void> test() async {
     if (busy) return;
+    if (keyController.text.trim().isEmpty) {
+      updateFeedback('Cole sua chave antes de testar.', error: true);
+      return;
+    }
     setState(() => busy = true);
+    updateFeedback('Testando conexão com a ElevenLabs…');
     try {
       await widget.model.setKey(keyController.text);
       final result = await widget.model.testKey();
-      if (mounted) notice(context, 'API conectada • Plano ${result.tier}.');
-    } catch (e) {
-      if (mounted) notice(context, '$e');
+      AppDiagnostics.instance.info('API_TESTE', 'Conexão validada.');
+      updateFeedback('Conexão válida! Plano: ${result.tier}.');
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('API_TESTE', e, stack);
+      updateFeedback('Falha ao testar: ${e is Exception ? friendlyError(e) : 'erro inesperado'}.', error: true);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -194,6 +233,7 @@ class _WizardSheetState extends State<WizardSheet> {
         const SizedBox(height: 20),
         if (step == 0) ...[
           TextField(controller: keyController, obscureText: !reveal,
+            onChanged: (_) => updateFeedback(''),
             enableSuggestions: false, autocorrect: false,
             decoration: InputDecoration(hintText: 'Chave API',
               suffixIcon: IconButton(onPressed: () => setState(() => reveal = !reveal),
@@ -204,7 +244,15 @@ class _WizardSheetState extends State<WizardSheet> {
             TextButton.icon(onPressed: paste, icon: const Icon(Icons.content_paste), label: const Text('Colar')),
             TextButton.icon(onPressed: busy ? null : save, icon: const Icon(Icons.shield_outlined), label: const Text('Guardar')),
             TextButton.icon(onPressed: busy ? null : test, icon: const Icon(Icons.wifi_tethering), label: const Text('Testar')),
+            TextButton.icon(onPressed: () async {
+              final ok = await openElevenApiKeys();
+              if (!ok) updateFeedback('Não foi possível abrir o navegador.', error: true);
+            }, icon: const Icon(Icons.open_in_new_rounded), label: const Text('Obter chave')),
           ]),
+          if (feedback.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            InlineFeedback(message: feedback, isError: feedbackError),
+          ],
         ],
         if (step == 1)
           OutlinedButton.icon(onPressed: widget.onExplore, icon: const Icon(Icons.mic_rounded),

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app_model.dart';
+import 'eleven_links.dart';
+import 'eleven_api.dart';
+import 'diagnostics.dart';
+import 'diagnostics_page.dart';
 import 'ui.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -19,9 +23,36 @@ class _SettingsPageState extends State<SettingsPage> {
   bool reveal = false;
   bool testing = false;
   bool saving = false;
+  String feedback = '';
+  bool feedbackError = false;
+  late String lastSyncedKey;
+
+  @override
+  void initState() {
+    super.initState();
+    lastSyncedKey = widget.model.key;
+    widget.model.addListener(syncKeyFromModel);
+  }
+
+  void syncKeyFromModel() {
+    if (widget.model.key != lastSyncedKey) {
+      lastSyncedKey = widget.model.key;
+      if (keyController.text != lastSyncedKey) {
+        keyController.value = TextEditingValue(
+          text: lastSyncedKey,
+          selection: TextSelection.collapsed(offset: lastSyncedKey.length),
+        );
+      }
+    }
+  }
+
+  void updateFeedback(String message, {bool error = false}) {
+    if (mounted) setState(() { feedback = message; feedbackError = error; });
+  }
 
   @override
   void dispose() {
+    widget.model.removeListener(syncKeyFromModel);
     keyController.dispose();
     super.dispose();
   }
@@ -39,12 +70,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> saveKey() async {
     if (saving) return;
+    if (keyController.text.trim().isEmpty) {
+      updateFeedback('Cole sua chave antes de salvar.', error: true);
+      return;
+    }
     setState(() => saving = true);
+    updateFeedback('Salvando chave…');
     try {
       await widget.model.setKey(keyController.text);
-      if (mounted) notice(context, 'Chave guardada no armazenamento seguro.');
-    } catch (_) {
-      if (mounted) notice(context, 'Falha ao guardar a chave. Verifique o Android Keystore.');
+      AppDiagnostics.instance.info('CHAVE_API', 'Chave armazenada com sucesso.');
+      updateFeedback('Chave guardada no armazenamento seguro.');
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('CHAVE_GUARDAR', e, stack);
+      updateFeedback('Falha ao salvar. Verifique o Keystore.', error: true);
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -52,14 +90,20 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> testKey() async {
     if (testing) return;
+    if (keyController.text.trim().isEmpty) {
+      updateFeedback('Cole sua chave antes de testar.', error: true);
+      return;
+    }
     setState(() => testing = true);
+    updateFeedback('Testando conexão com a ElevenLabs…');
     try {
       if (widget.model.key != keyController.text.trim()) await widget.model.setKey(keyController.text);
       final data = await widget.model.testKey();
-      if (!mounted) return;
-      notice(context, 'Conexão válida! Plano ${data.tier}.');
-    } catch (e) {
-      if (mounted) notice(context, '$e');
+      AppDiagnostics.instance.info('API_TESTE', 'Conexão validada.');
+      updateFeedback('Conexão válida! Plano: ${data.tier}.');
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('API_TESTE', e, stack);
+      updateFeedback('Falha ao testar: ${friendlyError(e)}.', error: true);
     } finally {
       if (mounted) setState(() => testing = false);
     }
@@ -72,9 +116,9 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       await widget.model.setKey('');
       keyController.clear();
-      if (mounted) notice(context, 'Chave removida.');
+      updateFeedback('Chave removida deste aparelho.');
     } catch (_) {
-      if (mounted) notice(context, 'Não foi possível remover a chave.');
+      updateFeedback('Não foi possível remover a chave.', error: true);
     }
   }
 
@@ -107,6 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ]),
           const SizedBox(height: 14),
           TextField(controller: keyController, obscureText: !reveal,
+            onChanged: (_) => updateFeedback(''),
             enableSuggestions: false, autocorrect: false,
             decoration: InputDecoration(
               hintText: 'Cole sua chave da ElevenLabs',
@@ -120,6 +165,10 @@ class _SettingsPageState extends State<SettingsPage> {
             TextButton.icon(onPressed: pasteKey, icon: const Icon(Icons.content_paste_rounded), label: const Text('Colar')),
             TextButton.icon(onPressed: copyKey, icon: const Icon(Icons.copy_rounded), label: const Text('Copiar')),
             TextButton.icon(onPressed: removeKey, icon: const Icon(Icons.delete_outline_rounded), label: const Text('Apagar')),
+            TextButton.icon(onPressed: () async {
+              final ok = await openElevenApiKeys();
+              if (!ok) updateFeedback('Não foi possível abrir o navegador.', error: true);
+            }, icon: const Icon(Icons.open_in_new_rounded), label: const Text('Obter chave API')),
           ]),
           const SizedBox(height: 10),
           Row(children: [
@@ -133,6 +182,10 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Text(saving ? 'Salvando…' : 'Salvar chave'),
             )),
           ]),
+          if (feedback.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            InlineFeedback(message: feedback, isError: feedbackError),
+          ],
           if (subscription != null) ...[
             const SizedBox(height: 13),
             Text('Plano: ${subscription.tier}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -193,6 +246,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.3': [
+    'Link oficial para criar a chave API, nas Configurações e no assistente.',
+    'Feedback visível de sucesso/erro ao guardar e testar a API.',
+    'Diagnóstico local de erros com copiar, exportar e fechar, sem expor a chave.',
+  ],
   '0.1.0-alpha.2': [
     'Novo nome Uai, Vozes e identificador Android com.drilemoz.uaivozes.',
     'Corrigida análise do Flutter: seletores de tema migrados para RadioGroup.',
@@ -273,6 +331,16 @@ class AboutPage extends StatelessWidget {
               ]),
             )),
           ])),
+        )),
+        const SectionTitle('Diagnóstico local'),
+        UaiVozesCard(child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.bug_report_outlined),
+          title: const Text('Erros do aplicativo'),
+          subtitle: const Text('Consultar, copiar ou exportar relatório local'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => const DiagnosticsPage())),
         )),
         const SectionTitle('Apoie o desenvolvimento'),
         UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
