@@ -12,6 +12,9 @@ import 'diagnostics.dart';
 import 'generation_failure.dart';
 import 'models.dart';
 import 'ui.dart';
+import 'voice_access.dart';
+import 'text_drafts.dart';
+import 'text_transfer.dart';
 
 class StudioPage extends StatefulWidget {
   const StudioPage({super.key, required this.model, required this.openVoices, required this.openSettings});
@@ -67,6 +70,116 @@ class _StudioPageState extends State<StudioPage> {
     super.dispose();
   }
 
+  Future<void> saveNamedDraft() async {
+    final content = text.text.trim();
+    if (content.isEmpty) { notice(context, 'Digite um texto para salvar.'); return; }
+    final titleController = TextEditingController(
+      text: content.replaceAll(RegExp(r'\s+'), ' ').substring(0,
+        content.length > 32 ? 32 : content.length));
+    try {
+      final title = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+        title: const Text('Salvar rascunho'),
+        content: TextField(controller: titleController, autofocus: true,
+          maxLength: 80, decoration: const InputDecoration(labelText: 'Título')),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, titleController.text.trim()),
+            child: const Text('Salvar'))],
+      ));
+      if (!mounted || title == null || title.isEmpty) return;
+      await widget.model.saveNamedDraft(title, content);
+      if (mounted) notice(context, 'Rascunho salvo neste aparelho.');
+    } catch (error, stack) {
+      AppDiagnostics.instance.capture('RASCUNHO_SALVAR', error, stack);
+      if (mounted) notice(context, 'Não foi possível salvar o rascunho.');
+    } finally { titleController.dispose(); }
+  }
+
+  Future<void> showDrafts() async {
+    await showModalBottomSheet<void>(context: context, showDragHandle: true,
+      isScrollControlled: true, builder: (ctx) => SafeArea(child: SizedBox(
+      height: MediaQuery.sizeOf(ctx).height * .65,
+      child: StatefulBuilder(builder: (ctx, refreshSheet) => ListView(
+        padding: const EdgeInsets.all(18), children: [
+        Text('Rascunhos salvos', style: Theme.of(ctx).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        const Text('Os rascunhos ficam no aparelho. Os áudios continuam na Biblioteca.'),
+        const SizedBox(height: 16),
+        if (widget.model.namedDrafts.isEmpty) const Text('Nenhum rascunho salvo.'),
+        ...widget.model.namedDrafts.map((draft) => ListTile(
+          title: Text(draft.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text('${draft.content.runes.length} caracteres'),
+          onTap: () async {
+            final replace = text.text.trim().isEmpty || await confirmSheet(ctx,
+              title: 'Abrir rascunho?',
+              message: 'O texto atual será substituído. Salve-o como rascunho antes, se desejar.',
+              action: 'Abrir');
+            if (!replace || !mounted || !ctx.mounted) return;
+            draftTimer?.cancel();
+            text.text = draft.content;
+            await widget.model.setDraft(draft.content);
+            if (mounted) setState(() {});
+            if (ctx.mounted) Navigator.pop(ctx);
+          },
+          trailing: IconButton(icon: const Icon(Icons.delete_outline_rounded),
+            tooltip: 'Excluir rascunho', onPressed: () async {
+              final yes = await confirmSheet(ctx, title: 'Excluir rascunho?',
+                message: 'O texto salvo será removido. Áudios não serão afetados.',
+                action: 'Excluir', destructive: true);
+              if (!yes) return;
+              await widget.model.deleteNamedDraft(draft.id);
+              refreshSheet(() {});
+            }),
+        )),
+      ]))),
+    ));
+  }
+
+  Future<void> importTextFile() async {
+    try {
+      final imported = await TextTransfer.importText();
+      if (!mounted || imported == null) return;
+      final proceed = text.text.trim().isEmpty || await confirmSheet(context,
+        title: 'Importar texto?', message: 'Isso substituirá o texto atual. Salve como rascunho antes, se necessário.',
+        action: 'Importar');
+      if (!proceed || !mounted) return;
+      draftTimer?.cancel();
+      text.text = imported;
+      await widget.model.setDraft(imported);
+      if (mounted) { setState(() {}); notice(context, 'Texto importado.'); }
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('TEXTO_IMPORTAR', e, stack);
+      if (mounted) notice(context, 'Não foi possível importar. Use um arquivo TXT com até 50.000 caracteres.');
+    }
+  }
+
+  Future<void> showParts() async {
+    final parts = TextDrafts.split(text.text);
+    if (parts.length <= 1) { notice(context, 'O texto já cabe em uma geração.'); return; }
+    await showModalBottomSheet<void>(context: context, showDragHandle: true,
+      isScrollControlled: true, builder: (ctx) => SafeArea(child: SizedBox(
+      height: MediaQuery.sizeOf(ctx).height * .65,
+      child: ListView(padding: const EdgeInsets.all(18), children: [
+        Text('Dividir em ${parts.length} partes', style: Theme.of(ctx).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        const Text('Selecione uma parte para editar e gerar individualmente. Salve o texto completo como rascunho antes de substituir.'),
+        for (var i = 0; i < parts.length; i++) ListTile(
+          title: Text('Parte ${i + 1} • ${parts[i].runes.length} caracteres'),
+          subtitle: Text(parts[i], maxLines: 2, overflow: TextOverflow.ellipsis),
+          onTap: () async {
+            final confirmed = await confirmSheet(ctx, title: 'Abrir parte ${i + 1}?',
+              message: 'O texto completo será substituído no editor. Salve o texto inteiro como rascunho antes de prosseguir.',
+              action: 'Abrir parte');
+            if (!confirmed || !mounted || !ctx.mounted) return;
+            draftTimer?.cancel();
+            text.text = parts[i];
+            await widget.model.setDraft(parts[i]);
+            if (mounted) setState(() {});
+            if (ctx.mounted) Navigator.pop(ctx);
+          },
+        ),
+      ]))));
+  }
+
   Future<void> generate() async {
     // Trava imediata inclusive durante a confirmação e compartilhada no modelo.
     if (confirming || generating || widget.model.generationInProgress) return;
@@ -85,6 +198,11 @@ class _StudioPageState extends State<StudioPage> {
       if (voice == null) {
         notice(context, 'Escolha uma voz para gerar o áudio.');
         widget.openVoices();
+        return;
+      }
+      final access = evaluateVoiceAccess(voice, widget.model.subscription?.tier);
+      if (access.isRestricted) {
+        notice(context, '${access.label}: escolha outra voz ou confira sua assinatura.');
         return;
       }
       final content = text.text.trim();
@@ -106,6 +224,7 @@ class _StudioPageState extends State<StudioPage> {
           message: 'Este texto tem $charCount caracteres. Para Eleven Multilingual v2, a referência base é de aproximadamente $estimate créditos, antes de eventuais multiplicadores e condições da conta. '
             'A cobrança efetiva depende das condições da ElevenLabs. '
             '${remaining == null ? 'Saldo não disponível na consulta atual.' : 'Saldo informado pela API: $remaining.'} '
+            '${voice.hasCustomRate ? 'A voz informa tarifa específica: o valor real pode ser superior à base. ' : ''}'
             'Deseja gerar e salvar o áudio?',
           action: 'Gerar áudio');
         if (!approved || !mounted) return;
@@ -259,12 +378,20 @@ class _StudioPageState extends State<StudioPage> {
           const SizedBox(height: 4),
           Text('Suas palavras, outra dimensão sonora.', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 18),
-          const SectionTitle('Seu texto'),
+          Row(children: [
+            const Expanded(child: SectionTitle('Seu texto')),
+            IconButton(onPressed: importTextFile, tooltip: 'Importar TXT',
+              icon: const Icon(Icons.file_open_rounded)),
+            IconButton(onPressed: saveNamedDraft, tooltip: 'Salvar rascunho',
+              icon: const Icon(Icons.save_outlined)),
+            IconButton(onPressed: showDrafts, tooltip: 'Rascunhos salvos',
+              icon: const Icon(Icons.folder_open_rounded)),
+          ]),
           TextField(
             controller: text,
             minLines: 6,
             maxLines: 12,
-            maxLength: 5000,
+            maxLength: TextDrafts.maxCharacters,
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
               hintText: 'Digite ou cole aqui o texto que deseja transformar em áudio…',
@@ -277,6 +404,10 @@ class _StudioPageState extends State<StudioPage> {
                   () => widget.model.setDraft(text.text));
             },
           ),
+          if (text.text.trim().runes.length > 5000) Padding(
+            padding: const EdgeInsets.only(top: 7), child: OutlinedButton.icon(
+              icon: const Icon(Icons.call_split_rounded), onPressed: showParts,
+              label: const Text('Dividir texto em partes de até 5.000 caracteres'))),
           const SizedBox(height: 10),
           const SectionTitle('Voz selecionada'),
           UaiVozesCard(

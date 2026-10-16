@@ -1,11 +1,11 @@
 {
   "projectName": "Uai Vozes",
   "platform": "Flutter Android",
-  "versionName": "0.1.0-alpha.11",
-  "versionCode": 11,
+  "versionName": "0.1.0-alpha.12",
+  "versionCode": 12,
   "workflow": ".github/workflows/gerar-apk.yml",
   "workflowName": "Gerar APK Uai Vozes",
-  "apkArtifact": "Uai-Vozes-v0.11-apk",
-  "apkFileName": "Uai-Vozes-v0.11.apk",
+  "apkArtifact": "Uai-Vozes-v0.12-apk",
+  "apkFileName": "Uai-Vozes-v0.12.apk",
   "notes": "Metadados informativos. Compatibilidade prática via repositório GitHub e GitHub Actions; não presume esquema privado do GitHub Manager."
 }

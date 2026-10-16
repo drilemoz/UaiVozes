@@ -14,6 +14,9 @@ class Voice {
     this.style = '',
     this.annualCharacters,
     this.publicOwnerId = '',
+    this.availableForTiers = const [],
+    this.freeUsersAllowed,
+    this.hasCustomRate = false,
   });
 
   final String id;
@@ -28,6 +31,10 @@ class Voice {
   final String style;
   final int? annualCharacters;
   final String publicOwnerId;
+  /// Campos da API, não uma garantia de geração autorizada.
+  final List<String> availableForTiers;
+  final bool? freeUsersAllowed;
+  final bool hasCustomRate;
 
   static String _str(dynamic v) => v is String ? v : '';
 
@@ -35,7 +42,17 @@ class Voice {
     final labels = (map['labels'] is Map)
         ? Map<String, dynamic>.from(map['labels'] as Map)
         : <String, dynamic>{};
+    final sharing = map['sharing'] is Map
+        ? Map<String, dynamic>.from(map['sharing'] as Map) : <String, dynamic>{};
+    final allowed = map['available_for_tiers'];
+    final rate = map['rate'] ?? sharing['rate'];
     return Voice(
+      availableForTiers: allowed is List ? allowed.whereType<String>().toList() : const [],
+      freeUsersAllowed: map['free_users_allowed'] is bool
+          ? map['free_users_allowed'] as bool
+          : (sharing['free_users_allowed'] is bool ? sharing['free_users_allowed'] as bool : null),
+      // O valor 'rate' NÃO é necessariamente o multiplicador aplicado ao plano.
+      hasCustomRate: map['has_custom_rate'] == true || (rate is num && rate > 0 && rate != 1),
       id: _str(map['voice_id']),
       name: _str(map['name']).isEmpty ? 'Voz sem nome' : _str(map['name']),
       category: _str(map['category']),
@@ -74,6 +91,10 @@ class Voice {
         'use_case': useCase,
         'gender': gender,
         'descriptive': style,
+        if (availableForTiers.isNotEmpty) 'available_for_tiers': availableForTiers,
+        if (freeUsersAllowed != null) 'free_users_allowed': freeUsersAllowed,
+        if (hasCustomRate) 'has_custom_rate': true,
+        // Não persistir uma taxa como se fosse um multiplicador.
       };
 
   /// Etiquetas de categorias traduzidas, sem modificar nomes oficiais de vozes.

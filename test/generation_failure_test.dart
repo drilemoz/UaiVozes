@@ -17,6 +17,14 @@ void main() {
     expect(result.report, isNot(contains('texto sensível')));
   });
 
+  test('free_users_not_allowed explica restrição sem ecoar corpo', () {
+    const error = ElevenApiException('texto confidencial', 403, 'free_users_not_allowed');
+    final failure = GenerationFailure.classify(error,
+      audioReceived: false, audioSaved: false);
+    expect(failure.message, contains('plano gratuito'));
+    expect(failure.report, isNot(contains('confidencial')));
+  });
+
   test('status 404 dá orientação para seleção de voz', () {
     const error = ElevenApiException('conteúdo privado', 404, 'voice_not_found');
     final result = GenerationFailure.classify(error,

@@ -11,6 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val channelName = "com.drilemoz.uaivozes/key_transfer"
     private val importRequest = 19011
+    private val importTextRequest = 19013
     private val exportRequest = 19012
     private var pending: MethodChannel.Result? = null
     private var exportContent: String? = null
@@ -23,7 +24,7 @@ class MainActivity : FlutterActivity() {
                 return@setMethodCallHandler
             }
             when (call.method) {
-                "importKey" -> {
+                "importKey", "importText" -> {
                     pending = result
                     try {
                         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -31,7 +32,7 @@ class MainActivity : FlutterActivity() {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/plain", "application/octet-stream"))
                         }
-                        startActivityForResult(intent, importRequest)
+                        startActivityForResult(intent, if (call.method == "importText") importTextRequest else importRequest)
                     } catch (error: Exception) { fail("IMPORT", error) }
                 }
                 "exportKey" -> {
@@ -66,12 +67,12 @@ class MainActivity : FlutterActivity() {
     @Deprecated("Usado pelo seletor de documentos SAF com FlutterActivity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != importRequest && requestCode != exportRequest) return
+        if (requestCode != importRequest && requestCode != importTextRequest && requestCode != exportRequest) return
         val callback = pending ?: return
         try {
             if (resultCode != Activity.RESULT_OK || data?.data == null) {
                 callback.success(null)
-            } else if (requestCode == importRequest) {
+            } else if (requestCode == importRequest || requestCode == importTextRequest) {
                 val uri = data.data!!
                 val stream = contentResolver.openInputStream(uri)
                     ?: throw IllegalStateException("Não foi possível ler o arquivo")
@@ -81,7 +82,8 @@ class MainActivity : FlutterActivity() {
                     while (true) {
                         val count = input.read(buffer)
                         if (count < 0) break
-                        if (output.size() + count > 8192) throw IllegalArgumentException("Arquivo grande")
+                        val maxBytes = if (requestCode == importTextRequest) 250000 else 8192
+                        if (output.size() + count > maxBytes) throw IllegalArgumentException("Arquivo grande")
                         output.write(buffer, 0, count)
                     }
                     output.toByteArray()

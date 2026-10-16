@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.1.0-alpha.12+12 · 16/10/2026
+
+- Explorador: estados conservadores de acesso de vozes com dados `available_for_tiers` e `free_users_allowed` retornados pela API. Sem informação suficiente, mostra “Acesso a confirmar”.
+- Aviso de tarifa específica e bloqueio preventivo de seleção/geração somente quando há restrição explícita ao plano atual.
+- Estúdio: rascunhos nomeados (até 20) além do salvamento automático; importar TXT com seletor SAF e dividir textos longos em partes de até 5.000 caracteres.
+- Incluídos testes de dados de voz, persistência defensiva de rascunhos e divisão Unicode. Nenhuma geração automática adicional.
+- Versão e documentação sincronizadas; mesmo `applicationId` e certificado de assinatura.
+
 ## 0.1.0-alpha.11+11
 - Diferencia erro de API (HTTP), falha de salvamento e erro interno, com orientação e cópia segura.
 - Salva MP3 antes de contabilizar consumo local; valida assinatura MP3.
@@ -87,4 +95,4 @@
 2. Explorador de vozes, prévias, favoritas, filtro e ranking real por idioma.
 3. Biblioteca local, chave segura, temas claro/AMOLED/sistema, wizard, novidades, Sobre e Pix.
 
-Próxima versão prevista: 0.1.0-alpha.11+11. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.
+Próxima versão prevista: 0.1.0-alpha.13+13. Incrementar metadados, notas, pubspec, arquivos JSON e nome do APK.

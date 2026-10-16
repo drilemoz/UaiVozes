@@ -16,7 +16,9 @@ class GenerationFailure {
     required bool audioSaved}) {
     if (error is ElevenApiException && !audioReceived) {
       final status = error.statusCode;
-      final details = switch (status) {
+      final details = error.reason == 'free_users_not_allowed'
+          ? 'A ElevenLabs informou que esta voz não está disponível no plano gratuito.'
+          : switch (status) {
         400 || 422 => 'A API rejeitou a solicitação. Pode ser incompatibilidade entre voz e modelo.',
         401 => 'A chave não foi aceita para gerar áudio. Consultar saldo pode exigir permissões diferentes.',
         402 || 403 => 'A chave ou o plano não permite usar esta voz ou função.',
@@ -25,7 +27,9 @@ class GenerationFailure {
         500 || 502 || 503 || 504 => 'O servidor da ElevenLabs apresentou uma falha.',
         _ => 'Não foi possível confirmar a resposta da ElevenLabs.',
       };
-      final next = switch (status) {
+      final next = error.reason == 'free_users_not_allowed'
+          ? 'Escolha uma voz permitida na sua conta ou verifique os planos diretamente na ElevenLabs.'
+          : switch (status) {
         400 || 402 || 403 || 404 || 422 =>
           'Confira se a voz está em Minhas vozes e tente uma voz disponível para sua conta.',
         401 => 'Confira as permissões da chave API em Configurações.',

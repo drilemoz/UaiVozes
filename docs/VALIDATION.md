@@ -1,4 +1,4 @@
-# Validação da versão 0.1.0-alpha.11+11
+# Validação da versão 0.1.0-alpha.12+12
 
 ## Causa do workflow anterior
 
@@ -100,3 +100,9 @@ Os logs `Gerar APK Uai Vozes` #8 registram êxito de `flutter analyze` (zero iss
 - Regressões cobrem códigos HTTP, falha no MP3 e classificação do erro por fase sem informação pessoal.
 - O print da falha de v0.10 não contém código HTTP: diagnóstico exato do servidor pendente da próxima execução real.
 - Flutter SDK/Android ausente no ambiente local: `flutter analyze`, `flutter test` e APK pendentes no GitHub Actions.
+
+## Validação alpha.12
+- Metadados opcionais de voz do GET /v1/voices/:voice_id e GET /v1/shared-voices, sem confundir prévia com acesso liberado.
+- Novos testes Flutter: voz restrita/desconhecida, rascunhos locais, Unicode e divisão em partes de <=5000 caracteres.
+- Importação TXT amplia a ponte Kotlin SAF com limite de 250 KiB, sem permissão de armazenamento amplo.
+- Testes Flutter e compilação Android ainda requerem CI e aparelho real.

@@ -18,6 +18,9 @@ class ElevenApiException implements Exception {
 
 String friendlyError(Object error) {
   if (error is ElevenApiException) {
+    if (error.reason == 'free_users_not_allowed') {
+      return 'esta voz não está disponível para usuários do plano Free';
+    }
     return switch (error.statusCode) {
       400 => 'formato ou parâmetros não aceitos pela ElevenLabs',
       401 => 'chave inválida ou sem permissão',

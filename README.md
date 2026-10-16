@@ -2,11 +2,18 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.11+11** · APK pretendido: **Uai-Vozes-v0.11.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.12+12** · APK pretendido: **Uai-Vozes-v0.12.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Novidades da alpha.12 (vozes com restrição e editor de textos)
+
+- Sinais informados pela API: `available_for_tiers`, `free_users_allowed` e presença de tarifa específica; avaliações conservadoras e sem classificação inventada.
+- Explorador e Estúdio evitam escolher uma voz com bloqueio explícito para o nível conhecido da assinatura.
+- Editor com rascunhos nomeados locais (máximo 20), importação de TXT via SAF nativo (até 50 mil caracteres), recuperação confirmada e divisão em partes com até 5 mil caracteres. Cada parte exige geração individual, com confirmação de consumo quando ativada.
+- Não adiciona bibliotecas de terceiros nem inclui tokens, prompts ou áudio nos diagnósticos.
 
 ## Novidades da alpha.10 (Explorador de vozes 2.0)
 
@@ -85,12 +92,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.11.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.12.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.11:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.12:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 
@@ -115,5 +122,5 @@ A API de assinatura retorna `character_count`, `character_limit` e, quando dispo
 - https://elevenlabs.io/docs/api-reference/user/get
 - https://elevenlabs.io/docs/api-reference/user/subscription/get
 
-## Tratamento de falha na geração (v0.11)
+## Tratamento de falha na geração (v0.12)
 Erros de API mostram código HTTP e orientações sem expor o texto ou a chave. Não há repetição automática. Caso um MP3 seja recebido, ele é salvo antes do registro opcional de consumo local. Para casos não identificados, copie o erro exibido e/ou use Sobre > Diagnóstico local.

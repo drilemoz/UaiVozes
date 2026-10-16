@@ -9,6 +9,7 @@ import 'eleven_api.dart';
 import 'models.dart';
 import 'ui.dart';
 import 'voice_browse_cache.dart';
+import 'voice_access.dart';
 
 const voiceStyles = <String, String>{
   'all': 'Todos os estilos',
@@ -250,6 +251,19 @@ class _VoicesPageState extends State<VoicesPage> {
   }
 
   Future<void> select(Voice voice) async {
+    final access = evaluateVoiceAccess(voice, widget.model.subscription?.tier);
+    if (access.isRestricted) {
+      if (mounted) await showModalBottomSheet<void>(context: context,
+        showDragHandle: true, builder: (ctx) => SafeArea(child: Padding(
+          padding: const EdgeInsets.all(22), child: Column(mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(access.label, style: Theme.of(ctx).textTheme.titleLarge),
+            const SizedBox(height: 10), Text(access.details),
+            const SizedBox(height: 16), FilledButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Entendi')),
+          ]))));
+      return;
+    }
     if (rankingMode && voice.publicOwnerId.isNotEmpty) {
       final confirmed = await confirmSheet(context,
         title: 'Adicionar voz à sua conta?',
@@ -264,6 +278,8 @@ class _VoicesPageState extends State<VoicesPage> {
           description: voice.description, accent: voice.accent,
           language: voice.language, useCase: voice.useCase, style: voice.style,
           previewUrl: voice.previewUrl,
+          availableForTiers: voice.availableForTiers,
+          freeUsersAllowed: voice.freeUsersAllowed, hasCustomRate: voice.hasCustomRate,
         ));
         if (mounted) notice(context, 'Voz adicionada à conta.');
         widget.onChosen();
@@ -409,6 +425,10 @@ class _VoicesPageState extends State<VoicesPage> {
               ? 'Top 10 real por uso no último ano; depende da permissão da conta. A busca filtra somente este Top 10.'
               : 'Busca e filtros consultam a API. Use “Carregar mais” para outras páginas; estilos são filtrados pelos metadados disponíveis.',
             style: theme.textTheme.bodySmall)),
+        if (widget.model.subscription == null && widget.model.key.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(bottom: 7), child: Text(
+            'Plano ainda não consultado: toque em Ajustes → Conta para verificar a disponibilidade.',
+            style: theme.textTheme.bodySmall)),
         if (widget.model.key.isEmpty)
           EmptyState(icon: Icons.key_rounded, title: 'Conecte sua conta',
             description: 'Configure sua chave API para explorar vozes.',
@@ -443,6 +463,17 @@ class _VoicesPageState extends State<VoicesPage> {
                 const SizedBox(height: 5),
                 Text(voice.summary.isEmpty ? 'Voz ElevenLabs' : voice.summary,
                   maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                Builder(builder: (ctx) {
+                  final info = evaluateVoiceAccess(voice, widget.model.subscription?.tier);
+                  return Wrap(spacing: 7, runSpacing: 3, children: [
+                    if (info.isRestricted) Text(info.label,
+                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error,
+                        fontWeight: FontWeight.bold))
+                    else Text(info.label, style: theme.textTheme.labelSmall),
+                    if (info.specialRate) Text('Tarifa específica: conferir custo',
+                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                  ]);
+                }),
                 if (rankingMode && voice.annualCharacters != null)
                   Text('${voice.annualCharacters} caracteres/ano', style: theme.textTheme.labelSmall),
               ]))),
@@ -454,7 +485,7 @@ class _VoicesPageState extends State<VoicesPage> {
               if (mounted) setState(() {});
             }, icon: Icon(widget.model.favoriteIds.contains(voice.id)
                 ? Icons.favorite_rounded : Icons.favorite_border_rounded)),
-          ]))),
+          ])))),
         if (loading) const Padding(padding: EdgeInsets.all(18),
           child: Center(child: CircularProgressIndicator())),
         if (!rankingMode && nextToken != null && !loading)

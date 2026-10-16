@@ -1,14 +1,12 @@
-# Uai Vozes v0.11 · 0.1.0-alpha.11+11 (versionCode 11)
+# Uai Vozes v0.12 · 0.1.0-alpha.12+12 (versionCode 12)
 
-- Corrigida mensagem genérica de falha: o Estúdio agora apresenta etapa, status HTTP quando existe, orientações e botão de copiar resumo seguro.
-- Diagnóstico registra código HTTP e categoria da operação, sem corpo da API, texto do usuário ou chave API.
-- Priorizado salvamento do MP3 antes da contabilidade local, evitando perda do áudio por falha em preferências.
-- Validação básica do cabeçalho MP3 impede salvar resposta HTML/JSON como arquivo de áudio.
-- Nenhuma retentativa automática de geração: falhas ambíguas podem ter consumido créditos.
-- Testes para resposta de erro, proteção de dados, áudio inválido, classificação por etapa e sucesso com MP3 válido.
+- Explorador de Vozes: indica “Exige plano pago” apenas com metadados explícitos da ElevenLabs e “Acesso a confirmar” em casos incertos; tarifas especiais recebem aviso sem assumir multiplicador.
+- Evita selecionar ou gerar com vozes explicitamente indisponíveis para o plano atual, reduzindo tentativas com risco de consumo.
+- Estúdio: importar TXT, salvar e recuperar rascunhos nomeados; dividir textos longos em partes de até 5.000 caracteres para geração manual controlada.
+- Testes de elegibilidade, dados incompletos, limite de rascunhos, integridade Unicode e validações anteriores preservadas.
 
-**Limite da análise:** o print da v0.10 não informa o status HTTP; não é possível confirmar a causa externa (voz/plano/rede) sem novo diagnóstico ou log.
+**Assinatura Android:** inalterada, mesmos Secrets obrigatórios. APK previsto `Uai-Vozes-v0.12.apk`, distribuído fora do ZIP do código.
 
-**Assinatura:** mesmos Secrets e `com.drilemoz.uaivozes`. APK previsto `Uai-Vozes-v0.11.apk`, separado do ZIP.
+**Limitação:** voz com selo “Acesso a confirmar” não é necessariamente gratuita; prévia não garante autorização. Em planos Free, a biblioteca pública via API pode ser inacessível. Não há download ou geração automática de partes longas.
 
-**Testes pendentes:** `flutter analyze`, `flutter test`, APK e verificação em aparelho via GitHub Actions.
+**Validação pendente:** Flutter analyze, testes Flutter e compilação do APK no GitHub Actions.

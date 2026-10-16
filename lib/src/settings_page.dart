@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.12': [
+    'Vozes exibem restrição ao plano Free quando a API confirma; dados ausentes aparecem como acesso a confirmar.',
+    'Tarifas especiais recebem aviso, sem inventar multiplicadores de créditos.',
+    'Estúdio com rascunhos nomeados, importação TXT e divisão de textos longos em partes.',
+  ],
   '0.1.0-alpha.11': [
     'Erros de geração exibem etapa e HTTP em painel, com opção Copiar erro sem dados sensíveis.',
     'Áudio recebido é salvo antes de registrar histórico: falha do histórico não descarta o MP3.',

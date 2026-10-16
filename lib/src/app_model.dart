@@ -10,12 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'eleven_api.dart';
 import 'audio_catalog.dart';
 import 'credit_ledger.dart';
+import 'text_drafts.dart';
 import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.11';
-  static const versionCode = 11;
+  static const version = '0.1.0-alpha.12';
+  static const versionCode = 12;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -46,6 +47,7 @@ class AppModel extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   String language = 'pt';
   String draft = '';
+  final List<TextDraft> namedDrafts = [];
   String lastSeenVersion = '';
   bool confirmCreditsBeforeGenerate = true;
   bool creditAlertsEnabled = true;
@@ -82,6 +84,7 @@ class AppModel extends ChangeNotifier {
     };
     language = _prefs?.getString('language') ?? 'pt';
     draft = _prefs?.getString('draft') ?? '';
+    namedDrafts.addAll(TextDrafts.decode(_prefs?.getString('named_text_drafts_v1')));
     lastSeenVersion = _prefs?.getString('seen_version') ?? '';
     confirmCreditsBeforeGenerate = _prefs?.getBool('confirm_credits') ?? true;
     creditAlertsEnabled = _prefs?.getBool('credit_alerts_enabled') ?? true;
@@ -291,6 +294,27 @@ class AppModel extends ChangeNotifier {
   Future<void> setDraft(String value) async {
     draft = value;
     await _prefs?.setString('draft', value);
+  }
+
+  Future<void> saveNamedDraft(String title, String content) async {
+    if (title.trim().isEmpty || content.trim().isEmpty ||
+        content.runes.length > TextDrafts.maxCharacters) {
+      throw const FormatException('Título ou texto inválido (limite de 50.000 caracteres).');
+    }
+    final now = DateTime.now();
+    final item = TextDraft(id: now.microsecondsSinceEpoch.toString(),
+      title: title.trim(), content: content, savedAt: now);
+    final updated = [item, ...namedDrafts].take(TextDrafts.maxSaved).toList();
+    await _prefs?.setString('named_text_drafts_v1', TextDrafts.encode(updated));
+    namedDrafts..clear()..addAll(updated);
+    notifyListeners();
+  }
+
+  Future<void> deleteNamedDraft(String id) async {
+    final updated = namedDrafts.where((e) => e.id != id).toList();
+    await _prefs?.setString('named_text_drafts_v1', TextDrafts.encode(updated));
+    namedDrafts..clear()..addAll(updated);
+    notifyListeners();
   }
 
   Future<void> toggleFavorite(String id) async {
