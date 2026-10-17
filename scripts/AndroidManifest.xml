@@ -1,5 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Visibilidade do serviço de síntese de voz em Android 11+.
+         Não solicita permissão nem garante voz offline. -->
+    <queries>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+    </queries>
     <application
         android:name="${applicationName}"
         android:label="Uai Vozes"

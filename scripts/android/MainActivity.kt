@@ -18,9 +18,11 @@ class MainActivity : FlutterActivity() {
     private var pending: MethodChannel.Result? = null
     private var exportContent: String? = null
     private var exportAudioPath: String? = null
+    private var androidSpeech: AndroidSpeechBridge? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        androidSpeech = AndroidSpeechBridge(this, flutterEngine.dartExecutor.binaryMessenger)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
             if (pending != null) {
                 result.error("BUSY", "O seletor de documentos já está aberto.", null)
@@ -94,6 +96,12 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onDestroy() {
+        androidSpeech?.close()
+        androidSpeech = null
+        super.onDestroy()
+    }
+
     private fun fail(kind: String, error: Exception) {
         // Não devolver mensagens nativas contendo caminho ou conteúdo sensível.
         pending?.error(kind, "Não foi possível acessar o documento selecionado.", null)
@@ -130,10 +138,21 @@ class MainActivity : FlutterActivity() {
             } else if (requestCode == audioRequest) {
                 val uri = data.data!!
                 val source = java.io.File(exportAudioPath
-                    ?: throw IllegalStateException("Arquivo ausente"))
+                    ?: throw IllegalStateException("Arquivo ausente")).canonicalFile
+                val base = java.io.File(applicationInfo.dataDir).canonicalFile
+                if (!source.isFile || source.length() <= 0L ||
+                    source.length() > 50L * 1024L * 1024L ||
+                    !source.path.startsWith(base.path + java.io.File.separator)) {
+                    throw IllegalStateException("Arquivo inválido para exportação")
+                }
                 val stream = contentResolver.openOutputStream(uri, "w")
                     ?: throw IllegalStateException("Não foi possível gravar o arquivo")
-                stream.use { output -> source.inputStream().use { input -> input.copyTo(output) } }
+                val copied = stream.use { output ->
+                    source.inputStream().use { input -> input.copyTo(output) }
+                }
+                if (copied <= 0L || copied != source.length()) {
+                    throw IllegalStateException("Cópia incompleta")
+                }
                 callback.success(true)
             } else {
                 val uri = data.data!!

@@ -18,5 +18,5 @@ class VoiceWidgetCondition20(unittest.TestCase):
     def test_sem_repetir_tts_ou_alterar_identificador(self):
         src=(ROOT/'lib/src/voices_page.dart').read_text(encoding='utf-8')
         self.assertIn('showAccountCandidates(defaultOnly: true)',src)
-        self.assertEqual((ROOT/'pubspec.yaml').read_text(encoding='utf-8').count('version: 0.1.0-alpha.25+25'),1)
+        self.assertEqual((ROOT/'pubspec.yaml').read_text(encoding='utf-8').count('version: 0.1.0-alpha.26+26'),1)
 if __name__=='__main__':unittest.main()

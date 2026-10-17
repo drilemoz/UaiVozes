@@ -311,6 +311,11 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.26': [
+    'Restaurada a leitura de texto pela voz do Android, sem consumir créditos ElevenLabs.',
+    'Saldo confirmado como zero exige nova consulta antes de uma geração; sem saldo confirmado, o POST é bloqueado.',
+    'Salvar MP3 da Biblioteca mantém o seletor nativo, com conferência adicional de arquivo e cópia.',
+  ],
   '0.1.0-alpha.25': [
     'Biblioteca: novo botão Salvar MP3, que grava o áudio no local que você escolher no aparelho.',
     'O botão Exportar virou Compartilhar e continua abrindo a folha de compartilhamento.',

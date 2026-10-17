@@ -39,3 +39,7 @@
 - Alpha.19: separar filtro estrito `Compatíveis com meu plano` de `Na minha conta (possíveis)`. `/v2/voices` é catálogo da conta, não garantia de TTS. O filtro de candidatas só pode funcionar em Minhas vozes e deve excluir bloqueios explicitamente confirmados. No Top 10 Free, explicar indisponibilidade da biblioteca pela API, oferecer Minhas vozes sem preservar filtros incompatíveis. HTTP 402 sem motivo continua ambíguo. Não fazer POST/TTS para verificar voz, nem afirmar gratuidade na ausência de `available_for_tiers`.
 
 - Alpha.20: blocos de filhos Flutter `if / else if / else` devem manter o `else` imediatamente ligado à cadeia; widgets auxiliares (ex.: Consultar vozes padrão) precisam vir depois, em `if` independente. Adicionar e manter teste estático de regressão; no CI executar `flutter analyze` antes de `flutter test` e APK.
+
+- Alpha.26: não remover a ponte `AndroidSpeechBridge.kt` quando alterar o SAF em `MainActivity.kt`, ou vice-versa. O script de preparação deve copiar ambas. A voz local só reproduz, sem MP3 e sem consumo ElevenLabs; erros HTTP 402 oferecem alternativa.
+- Após resposta de saldo oficial zero, só permitir POST se uma nova consulta GET confirmar saldo positivo; falha, ausência de saldo ou consulta ainda em andamento bloqueiam a tentativa. Sem geração de teste automática.
+- Exportação MP3 pelo SAF: validar caminho canônico dentro do app, arquivo regular com até 50 MiB antes e depois do seletor; cancelar retorna falso; sucesso apenas depois da cópia completa.

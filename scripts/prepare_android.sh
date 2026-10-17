@@ -20,6 +20,7 @@ cp scripts/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 # Integração leve com o seletor de documentos do Android (sem plugin extra).
 mkdir -p android/app/src/main/kotlin/com/drilemoz/uaivozes
 cp scripts/android/MainActivity.kt android/app/src/main/kotlin/com/drilemoz/uaivozes/MainActivity.kt
+cp scripts/android/AndroidSpeechBridge.kt android/app/src/main/kotlin/com/drilemoz/uaivozes/AndroidSpeechBridge.kt
 # O scaffold Flutter define minSdk/versionCode no Gradle a partir do pubspec.
 # Assinatura ESTÁVEL obrigatória: nunca entregar release assinada pelo debug
 # do runner, que mudaria o certificado e obrigaria desinstalar o app.

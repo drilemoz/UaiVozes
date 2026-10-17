@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'app_model.dart';
+import 'android_speech.dart';
 import 'credit_ledger.dart';
 import 'account_page.dart';
 import 'diagnostics.dart';
@@ -36,11 +37,23 @@ class _StudioPageState extends State<StudioPage> {
   StreamSubscription<PlaybackEvent>? playbackErrorSubscription;
   AudioRecord? lastAudio;
   bool playing = false;
+  bool readingAndroid = false;
+  bool initializingAndroid = false;
+  late final AndroidSpeech androidSpeech;
   Timer? draftTimer;
 
   @override
   void initState() {
     super.initState();
+    androidSpeech = AndroidSpeech(
+      onFinished: () { if (mounted) setState(() => readingAndroid = false); },
+      onFailed: () {
+        if (mounted) {
+          setState(() => readingAndroid = false);
+          notice(context, 'A voz do Android interrompeu a leitura. Confira o idioma instalado.');
+        }
+      },
+    );
     playbackStateSubscription = player.playerStateStream.listen((state) {
       if (!mounted) return;
       if (state.processingState == ProcessingState.completed) {
@@ -67,6 +80,8 @@ class _StudioPageState extends State<StudioPage> {
     unawaited(playbackStateSubscription?.cancel() ?? Future<void>.value());
     unawaited(playbackErrorSubscription?.cancel() ?? Future<void>.value());
     text.dispose();
+    unawaited(androidSpeech.stop().catchError((Object _) {}));
+    androidSpeech.dispose();
     unawaited(player.dispose());
     super.dispose();
   }
@@ -181,6 +196,43 @@ class _StudioPageState extends State<StudioPage> {
       ]))));
   }
 
+  /// Reproduz pelo sintetizador do Android. Nao chama ElevenLabs nem salva MP3.
+  Future<void> readWithAndroid() async {
+    if (initializingAndroid) return;
+    if (readingAndroid) {
+      try { await androidSpeech.stop(); }
+      catch (error, stack) { AppDiagnostics.instance.capture('ANDROID_TTS_STOP', error, stack); }
+      if (mounted) setState(() => readingAndroid = false);
+      return;
+    }
+    final content = text.text.trim();
+    if (content.isEmpty) { notice(context, 'Digite um texto para ouvir.'); return; }
+    if (content.length > 3500) {
+      notice(context, 'A voz do Android aceita ate 3500 caracteres de cada vez. Divida textos maiores.');
+      return;
+    }
+    // Marcar antes de invocar o canal: sintetizadores rápidos podem concluir
+    // antes da resposta de speak e o evento done não pode ser sobrescrito.
+    setState(() { initializingAndroid = true; readingAndroid = true; });
+    try {
+      await androidSpeech.speak(content, language: widget.model.language);
+    } on PlatformException catch (error) {
+      if (mounted) setState(() => readingAndroid = false);
+      AppDiagnostics.instance.failure('ANDROID_TTS', 'codigo=${error.code}');
+      if (mounted) notice(context, switch (error.code) {
+        'LANGUAGE_UNAVAILABLE' => 'Voz do idioma não instalada. Configure a síntese de voz nas opções do Android.',
+        'TTS_UNAVAILABLE' => 'Nenhum mecanismo de leitura do Android está disponível.',
+        _ => 'A leitura Android falhou. Confira o motor de síntese de voz nas configurações.',
+      });
+    } catch (error, stack) {
+      if (mounted) setState(() => readingAndroid = false);
+      AppDiagnostics.instance.capture('ANDROID_TTS', error, stack);
+      if (mounted) notice(context, 'Não foi possível iniciar a voz do Android.');
+    } finally {
+      if (mounted) setState(() => initializingAndroid = false);
+    }
+  }
+
   Future<void> generate() async {
     // Trava imediata inclusive durante a confirmação e compartilhada no modelo.
     if (confirming || generating || widget.model.generationInProgress) return;
@@ -216,6 +268,23 @@ class _StudioPageState extends State<StudioPage> {
       if (content.runes.length > 5000) {
         notice(context, 'O texto deve ter no máximo 5.000 caracteres.');
         return;
+      }
+      // Se o último saldo oficial já estava esgotado, reconfirmar por GET.
+      // Não disparar POST TTS enquanto a conta está sendo consultada ou se
+      // a consulta falhou. Uma resposta desconhecida não equivale a crédito.
+      if (widget.model.subscription?.remaining == 0) {
+        final activeKey = widget.model.key;
+        if (widget.model.refreshingUsage) {
+          notice(context, 'A consulta do saldo ainda está em andamento. Tente após a atualização.');
+          return;
+        }
+        await widget.model.refreshUsage();
+        if (!mounted || widget.model.key != activeKey) return;
+        final remainingAfterRefresh = widget.model.subscription?.remaining;
+        if (widget.model.usageError != null || remainingAfterRefresh == null || remainingAfterRefresh <= 0) {
+          notice(context, 'Sem créditos disponíveis confirmados pela API. Consulte sua assinatura ou use a voz do Android sem créditos.');
+          return;
+        }
       }
       if (widget.model.confirmCreditsBeforeGenerate) {
         final estimate = CreditEstimator.baseEstimate(
@@ -335,6 +404,17 @@ class _StudioPageState extends State<StudioPage> {
                 if (!mounted) return;
                 unawaited(widget.model.refreshUsage());
                 unawaited(showUsageSheet(context, widget.model));
+              },
+            )),
+          ],
+          if (failure.httpStatus == 402) ...[
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(
+              icon: const Icon(Icons.record_voice_over_rounded),
+              label: const Text('Ouvir com voz do Android, sem créditos ElevenLabs'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                if (mounted) unawaited(readWithAndroid());
               },
             )),
           ],
@@ -500,6 +580,17 @@ class _StudioPageState extends State<StudioPage> {
             label: Padding(padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Text(generating ? 'Gerando áudio…' : 'Gerar e salvar áudio')),
           ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: initializingAndroid ? null : readWithAndroid,
+            icon: Icon(readingAndroid ? Icons.stop_circle_outlined : Icons.record_voice_over_rounded),
+            label: Text(initializingAndroid ? 'Iniciando voz do Android…' :
+                readingAndroid ? 'Parar leitura Android' : 'Ouvir texto com voz do Android (sem créditos)'),
+          ),
+          const SizedBox(height: 5),
+          Text('A voz do Android não usa a ElevenLabs e não salva MP3. '
+              'Depende do sintetizador instalado; alguns motores precisam de internet ou de pacote de idioma.',
+            textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
           const SizedBox(height: 9),
           Text('A geração pode consumir créditos ElevenLabs e requer internet.',
               textAlign: TextAlign.center, style: theme.textTheme.bodySmall),

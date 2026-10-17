@@ -2,11 +2,18 @@
 
 Uai Vozes é um aplicativo Flutter Android leve para converter textos em áudio com **ElevenLabs**, com design inspirado em cartões limpos, filtro compacto, wizard, novidades, conta e consumo e preto AMOLED real.
 
-Versão: **0.1.0-alpha.25+25** · APK pretendido: **Uai-Vozes-v0.25.apk** · Pacote Android: `com.drilemoz.uaivozes`.
+Versão: **0.1.0-alpha.26+26** · APK pretendido: **Uai-Vozes-v0.26.apk** · Pacote Android: `com.drilemoz.uaivozes`.
 
 Identidade do launcher: **ícone de microfone nativo do Android** (`@android:drawable/ic_btn_speak_now`), sem assets de imagem extras.
 
 **Identificador estável:** `com.drilemoz.uaivozes` permanece igual desde a alpha.2 para permitir atualizações sem perda de dados, quando a assinatura do APK é a mesma.
+
+## Alpha.26 (leitura Android + verificação de exportação)
+
+- Retorno da leitura de textos pelo sintetizador Android (`android_speech`), inclusive atalho após HTTP 402. Não consome ElevenLabs e não exporta MP3; a disponibilidade offline depende do sintetizador instalado.
+- Quando a última consulta oficial informa saldo zero, atualizar por GET antes do POST TTS. Sem confirmação de saldo positivo, não gerar; evitar chamadas duplicadas cobradas.
+- Mantém o salvamento MP3 pelo SAF da alpha.25, com verificação adicional do arquivo antes da cópia, do tamanho efetivamente escrito e tratamento do cancelamento.
+- Corrigido `test/audio_export_test.dart`, que continha expressão Dart inválida para repetição de string. Testes Dart/Flutter e APK precisam ser executados em CI para validação real.
 
 ## Alpha.25 (salvar MP3)
 
@@ -28,7 +35,7 @@ Identidade do launcher: **ícone de microfone nativo do Android** (`@android:dra
 
 - HTTP 402 com plano Free: mensagem aponta a restrição de vozes da biblioteca pública pela API e sugere voz padrão; motivos `payment_required`/`paid_plan_required` reconhecidos.
 - Top 10 sem idioma: orientação na tela, sem erro no diagnóstico.
-- Análise Flutter, testes e APK v0.21 dependem do GitHub Actions.
+- Análise Flutter, testes e APK v0.26 dependem do GitHub Actions.
 
 ## Correção da alpha.20 (workflow #19)
 
@@ -174,12 +181,12 @@ flutter analyze
 flutter test
 flutter build apk --release --target-platform android-arm64
 mkdir -p dist
-cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.25.apk
+cp build/app/outputs/flutter-apk/app-release.apk dist/Uai-Vozes-v0.26.apk
 ```
 
 Ou envie este projeto ao GitHub via GitHub Manager e execute o workflow **Gerar APK Uai Vozes**. O artifact terá o APK separado do ZIP do código. Veja `docs/GITHUB_MANAGER.md`.
 
-**Assinatura obrigatória na v0.25:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
+**Assinatura obrigatória na v0.26:** informe os quatro Secrets do GitHub Manager para liberar o build de produção. O workflow falha sem eles, evitando APK com certificado temporário. Veja `docs/GITHUB_MANAGER.md`.
 
 ## Segurança e limites
 

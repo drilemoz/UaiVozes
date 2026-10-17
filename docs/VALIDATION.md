@@ -1,3 +1,10 @@
+# Validação da versão 0.1.0-alpha.26+26
+
+- Base: ZIP `Flowiav0.1.0-alpha.25.zip` do Claude, contendo projeto `uaivozes`, comparado à ponte TTS local da alpha.21.
+- Correções: string Dart repetida validamente; retorno da ponte Android TTS com declaração de visibilidade do serviço no Manifest; ponte de exportação SAF preservada e verificação da cópia em bytes; bloqueio de tentativa TTS após saldo reportado zero sem nova confirmação positiva.
+- Testes de estrutura Python, regressões e Kotlin isolado devem ser relatados com resultados reais; Flutter SDK ausente impede afirmar sucesso de `flutter analyze`, `flutter test`, build APK e testes em aparelho.
+- Testes manuais obrigatórios: leitura Android (iniciar/parar/erro de idioma), salvar MP3/cancelar, reprodução externa do arquivo, saldo zero com GET sem POST e atualização sobre o app instalado (mesmo certificado).
+
 # Validação da versão 0.1.0-alpha.25+25
 
 - Alteração em `MainActivity.kt` (novo `exportAudio`) revisada só por leitura e testes Python de código-fonte; Kotlin e Flutter não foram compilados aqui. Conferir no CI e no celular: Salvar MP3 abre o seletor, grava um MP3 que toca, cancelar não mostra erro, e Compartilhar continua funcionando.

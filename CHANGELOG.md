@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.1.0-alpha.26+26 · 16/10/2026
+
+- Restaurada ponte Android `AndroidSpeechBridge.kt` e `lib/src/android_speech.dart`, preservando integralmente o exportador SAF MP3 da v0.25; botão no Estúdio e no aviso HTTP 402 para leitura local, sem solicitação à ElevenLabs.
+- Proteção de saldo esgotado: após conta indicar zero, a geração faz uma única consulta GET, aguarda resultado e bloqueia POST sem saldo positivo confirmado. Sem tentativa automática de síntese e sem revelar informações privadas no diagnóstico.
+- Corrigido teste Dart `test/audio_export_test.dart` (`'x' * 300` era inválido). Exportação MP3 revalida o arquivo privado no retorno do seletor e confere quantidade de bytes copiados, mantendo limites de 50 MiB e ausência de permissões de armazenamento.
+- Novos testes de regressão para a integração, versionamento sequencial, notas/GUI, GitHub Actions e Secrets de assinatura preservados. Build Flutter/Android e teste no aparelho ainda pendentes.
+
 ## 0.1.0-alpha.25+25 · 17/10/2026
 
 - Descoberta: a Biblioteca já tinha compartilhamento via `Share.shareXFiles`; faltava salvar o MP3 num local escolhido. Botão antigo renomeado para **Compartilhar**.

@@ -1,3 +1,10 @@
+# Uai Vozes v0.26 (alpha.26)
+
+- Corrigido teste Dart de nomes longos de MP3; salvo MP3 segue funcionando pelo seletor SAF com verificação adicional do arquivo e cópia completa.
+- Restaurada opção **Ouvir texto com voz do Android (sem créditos)** no Estúdio e após erro HTTP 402. Não usa ElevenLabs, não salva MP3 e depende do mecanismo de síntese de voz do aparelho.
+- Quando o saldo oficial foi identificado como zero, a geração reconsulta por GET e não envia nova chamada TTS sem confirmação positiva. Nenhum teste gera fala cobrável automaticamente.
+- `flutter analyze`, `flutter test`, APK ARM64 assinado e teste em Android real permanecem pendentes do workflow. APK previsto: `Uai-Vozes-v0.26.apk`.
+
 # Uai Vozes v0.25 (alpha.25)
 
 - Biblioteca: botão **Salvar MP3** abre o seletor nativo (`ACTION_CREATE_DOCUMENT`, `audio/mpeg`) e copia o arquivo para o local escolhido. O antigo Exportar passou a **Compartilhar** (folha de compartilhamento).
