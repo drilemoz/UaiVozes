@@ -14,8 +14,10 @@ class MainActivity : FlutterActivity() {
     private val importTextRequest = 19013
     private val exportRequest = 19012
     private val diagnosticRequest = 19014
+    private val audioRequest = 19015
     private var pending: MethodChannel.Result? = null
     private var exportContent: String? = null
+    private var exportAudioPath: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -56,6 +58,37 @@ class MainActivity : FlutterActivity() {
                         startActivityForResult(intent, if (diagnostic) diagnosticRequest else exportRequest)
                     } catch (error: Exception) { fail("EXPORT", error) }
                 }
+                "exportAudio" -> {
+                    // Somente arquivos dentro do armazenamento privado do app.
+                    val path = call.argument<String>("path")
+                    val name = call.argument<String>("name")
+                    val file = try {
+                        if (path.isNullOrEmpty()) null else java.io.File(path).canonicalFile
+                    } catch (error: Exception) { null }
+                    val base = try {
+                        java.io.File(applicationInfo.dataDir).canonicalFile
+                    } catch (error: Exception) { null }
+                    if (file == null || base == null || !file.isFile || file.length() <= 0L ||
+                        file.length() > 50L * 1024L * 1024L ||
+                        !file.path.startsWith(base.path + java.io.File.separator)) {
+                        result.error("INVALID", "Arquivo de áudio inválido.", null)
+                        return@setMethodCallHandler
+                    }
+                    val safeName = (name ?: "").map { c ->
+                        if (c.code < 32 || "\\/:*?\"<>|".indexOf(c) >= 0) '_' else c
+                    }.joinToString("").trim()
+                    pending = result
+                    exportAudioPath = file.path
+                    try {
+                        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "audio/mpeg"
+                            putExtra(Intent.EXTRA_TITLE,
+                                if (safeName.isEmpty()) "Uai-Vozes-audio.mp3" else safeName)
+                        }
+                        startActivityForResult(intent, audioRequest)
+                    } catch (error: Exception) { fail("EXPORT", error) }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -66,12 +99,13 @@ class MainActivity : FlutterActivity() {
         pending?.error(kind, "Não foi possível acessar o documento selecionado.", null)
         pending = null
         exportContent = null
+        exportAudioPath = null
     }
 
     @Deprecated("Usado pelo seletor de documentos SAF com FlutterActivity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != importRequest && requestCode != importTextRequest && requestCode != exportRequest && requestCode != diagnosticRequest) return
+        if (requestCode != importRequest && requestCode != importTextRequest && requestCode != exportRequest && requestCode != diagnosticRequest && requestCode != audioRequest) return
         val callback = pending ?: return
         try {
             if (resultCode != Activity.RESULT_OK || data?.data == null) {
@@ -93,6 +127,14 @@ class MainActivity : FlutterActivity() {
                     output.toByteArray()
                 }
                 callback.success(String(bytes, Charsets.UTF_8))
+            } else if (requestCode == audioRequest) {
+                val uri = data.data!!
+                val source = java.io.File(exportAudioPath
+                    ?: throw IllegalStateException("Arquivo ausente"))
+                val stream = contentResolver.openOutputStream(uri, "w")
+                    ?: throw IllegalStateException("Não foi possível gravar o arquivo")
+                stream.use { output -> source.inputStream().use { input -> input.copyTo(output) } }
+                callback.success(true)
             } else {
                 val uri = data.data!!
                 val stream = contentResolver.openOutputStream(uri, "w")
@@ -104,6 +146,7 @@ class MainActivity : FlutterActivity() {
             callback.error("DOCUMENT", "Falha ao acessar o arquivo. Tente novamente.", null)
         } finally {
             exportContent = null
+            exportAudioPath = null
             pending = null
         }
     }

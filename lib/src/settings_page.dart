@@ -311,6 +311,30 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const releaseNotes = <String, List<String>>{
+  '0.1.0-alpha.25': [
+    'Biblioteca: novo botão Salvar MP3, que grava o áudio no local que você escolher no aparelho.',
+    'O botão Exportar virou Compartilhar e continua abrindo a folha de compartilhamento.',
+    'Sem internet, sem API e sem permissão ampla de armazenamento; só o seletor de arquivos do Android.',
+  ],
+  '0.1.0-alpha.24': [
+    'Novo seletor de modelo no Estúdio: Multilingual v2 (padrão) ou Flash v2.5, mais econômico.',
+    'A estimativa de créditos, o histórico local e a confirmação passam a usar o modelo escolhido.',
+    'Valores são referências da ElevenLabs, antes de multiplicadores da voz e condições do plano.',
+  ],
+  '0.1.0-alpha.23': [
+    'Vozes que já geraram áudio nesta conta ganham o selo Já gerou áudio nesta conta.',
+    'Novo filtro (ícone de visto) mostra só essas vozes, para evitar o erro 402.',
+    'O selo vale só para esta conta e some ao trocar a chave API; não garante gerações futuras.',
+  ],
+  '0.1.0-alpha.22': [
+    'O aviso de erro HTTP 402 ganhou o botão Ver vozes padrão da minha conta, que abre a lista direto.',
+    'Somente lista vozes por consulta; nenhuma geração de áudio é disparada.',
+  ],
+  '0.1.0-alpha.21': [
+    'Erro HTTP 402 agora explica o caso do plano Free com vozes da biblioteca pública e sugere testar uma voz padrão.',
+    'Top 10 sem idioma escolhido mostra orientação clara, sem registrar erro no diagnóstico.',
+    'Sem alterar a geração de áudio, assinatura ou dados locais.',
+  ],
   '0.1.0-alpha.20': [
     'Corrigida a sintaxe do Explorador que bloqueava a análise Flutter no workflow v0.19.',
     'Filtros e lista de vozes preservados; consultar vozes padrão agora é um botão independente.',

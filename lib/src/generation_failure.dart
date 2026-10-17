@@ -13,7 +13,9 @@ class GenerationFailure {
   final int? httpStatus;
 
   static GenerationFailure classify(Object error, {required bool audioReceived,
-    required bool audioSaved}) {
+    required bool audioSaved, String? plan, String? model}) {
+    final alternateModel = model != null && model != 'eleven_multilingual_v2';
+    final isFree = (plan ?? '').trim().toLowerCase() == 'free';
     if (error is ElevenApiException && !audioReceived) {
       final status = error.statusCode;
       final reason = error.reason;
@@ -24,6 +26,10 @@ class GenerationFailure {
           'A ElevenLabs confirmou créditos insuficientes para esta geração.',
         'subscription_required' || 'feature_not_available' =>
           'A ElevenLabs informou que a função exige outra assinatura ou plano.',
+        'payment_required' || 'paid_plan_required' =>
+          isFree
+            ? 'A ElevenLabs informou que a operação exige plano pago. No plano Free, vozes da biblioteca pública não geram áudio pela API, mesmo com prévia.'
+            : 'A ElevenLabs informou que a operação exige pagamento ou plano pago.',
         'voice_access_denied' =>
           'A ElevenLabs informou que sua conta não tem acesso a esta voz.',
         'model_access_denied' =>
@@ -33,7 +39,9 @@ class GenerationFailure {
         _ => switch (status) {
           400 || 422 => 'A API rejeitou a solicitação. Pode ser incompatibilidade entre voz e modelo.',
           401 => 'A chave não foi aceita para gerar áudio. Consultar saldo pode exigir permissões diferentes.',
-          402 => 'A ElevenLabs exige pagamento ou não há créditos suficientes. O motivo exato não foi confirmado.',
+          402 => isFree
+            ? 'A ElevenLabs exige pagamento (HTTP 402). No plano Free isso é comum com vozes da biblioteca pública pela API, mas o motivo exato não foi confirmado; também pode ser falta de créditos.'
+            : 'A ElevenLabs exige pagamento ou não há créditos suficientes. O motivo exato não foi confirmado.',
           403 => 'A chave ou a conta não tem acesso à voz ou função solicitada.',
           404 => 'A voz selecionada ou o modelo não está disponível para esta conta.',
           429 => 'A ElevenLabs bloqueou a solicitação por limite de uso ou frequência.',
@@ -46,12 +54,18 @@ class GenerationFailure {
           'Confira as vozes e modelos permitidos na sua conta. Não gere novamente sem verificar o acesso.',
         'subscription_required' || 'feature_not_available' =>
           'Consulte seu plano na ElevenLabs antes de tentar outra geração.',
+        'payment_required' || 'paid_plan_required' =>
+          'Teste uma voz padrão (premade) ou uma voz criada por você, ou assine um plano pago para usar vozes da biblioteca. Não repita a geração com a mesma voz.',
         'insufficient_permissions' =>
           'Confira as permissões da chave API em Configurações.',
         _ => switch (status) {
-          402 => 'Abra Créditos e consumo, atualize o saldo e confira seu plano na ElevenLabs. Não repita a geração sem verificar os limites.',
+          402 => isFree
+            ? 'Teste uma voz padrão (premade) ou uma voz criada por você. Se também falhar, abra Créditos e consumo e confira o saldo. Não repita a geração com a mesma voz.'
+            : 'Abra Créditos e consumo, atualize o saldo e confira seu plano na ElevenLabs. Não repita a geração sem verificar os limites.',
           400 || 403 || 404 || 422 =>
-            'Confira se a voz está em Minhas vozes e tente uma voz disponível para sua conta.',
+            alternateModel
+              ? 'Confira se a voz está em Minhas vozes. Se acabou de trocar o modelo, volte ao Multilingual v2 e teste de novo.'
+              : 'Confira se a voz está em Minhas vozes e tente uma voz disponível para sua conta.',
           401 => 'Confira as permissões da chave API em Configurações.',
           429 => 'Confira os limites e aguarde antes de solicitar outra geração.',
           _ => 'Confira a Biblioteca e o saldo antes de tentar novamente. Uma solicitação pode ter sido cobrada.',
@@ -60,7 +74,8 @@ class GenerationFailure {
       return GenerationFailure(title: 'Falha na geração pela API', message: details,
         nextAction: next, httpStatus: status,
         diagnostic: 'GERACAO_API | ${status == null ? 'sem resposta HTTP confirmada' : 'HTTP $status'}'
-          '${error.reason == null ? '' : ' | ${error.reason}'}');
+          '${error.reason == null ? '' : ' | ${error.reason}'}'
+          '${alternateModel ? ' | modelo=$model' : ''}');
     }
     if (audioReceived && !audioSaved) {
       return GenerationFailure(title: 'Erro ao salvar áudio',

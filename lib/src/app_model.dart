@@ -15,8 +15,8 @@ import 'diagnostics.dart';
 import 'models.dart';
 
 class AppModel extends ChangeNotifier {
-  static const version = '0.1.0-alpha.20';
-  static const versionCode = 20;
+  static const version = '0.1.0-alpha.25';
+  static const versionCode = 25;
   static const pix = 'drilemoz@gmail.com';
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -28,6 +28,13 @@ class AppModel extends ChangeNotifier {
   bool get canSaveAudio => _catalog != null;
   bool _generationInProgress = false;
   bool get generationInProgress => _generationInProgress;
+
+  /// Pedido para a aba Vozes listar as vozes padrão da conta (sem TTS).
+  int defaultVoicesRequest = 0;
+  void requestDefaultVoices() {
+    defaultVoicesRequest++;
+    notifyListeners();
+  }
 
   /// Trava no modelo, não na tela: evita dupla chamada TTS mesmo após reconstruir UI.
   bool tryBeginGeneration() {
@@ -68,6 +75,12 @@ class AppModel extends ChangeNotifier {
       ? CreditWarning.percentThreshold(subscription?.used, subscription?.limit) ?? 0 : 0;
   final List<AudioRecord> library = [];
   final Set<String> favoriteIds = {};
+  /// Vozes que já devolveram áudio válido NESTA conta (chave). Não é garantia
+  /// futura: saldo, modelo ou plano podem mudar. Limpo ao trocar a chave.
+  final Set<String> workedVoiceIds = {};
+  static const _maxWorkedVoices = 200;
+  /// Modelo de TTS escolhido no Estúdio; sempre um ID conhecido.
+  String ttsModel = CreditEstimator.defaultModel;
 
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
@@ -96,6 +109,9 @@ class AppModel extends ChangeNotifier {
       await _resetLocalUsage();
     }
     favoriteIds.addAll(_prefs?.getStringList('favorites') ?? []);
+    workedVoiceIds.addAll(_prefs?.getStringList('worked_voices') ?? []);
+    final savedModel = _prefs?.getString('tts_model');
+    if (CreditEstimator.isKnownModel(savedModel)) ttsModel = savedModel!;
     try {
       final rawVoice = _prefs?.getString('selected_voice');
       if (rawVoice != null) {
@@ -140,6 +156,8 @@ class AppModel extends ChangeNotifier {
       refreshingAccount = false;
       creditLedger = CreditLedger();
       await _prefs?.remove('credit_ledger_v1');
+      workedVoiceIds.clear();
+      await _prefs?.remove('worked_voices');
       await _resetLocalUsage();
     }
     subscription = null;
@@ -300,6 +318,28 @@ class AppModel extends ChangeNotifier {
     if (favoriteIds.remove(voiceId)) {
       await _prefs?.setStringList('favorites', favoriteIds.toList());
     }
+    if (workedVoiceIds.remove(voiceId)) {
+      await _prefs?.setStringList('worked_voices', workedVoiceIds.toList());
+    }
+    notifyListeners();
+  }
+
+  Future<void> setTtsModel(String id) async {
+    if (!CreditEstimator.isKnownModel(id) || id == ttsModel) return;
+    ttsModel = id;
+    await _prefs?.setString('tts_model', id);
+    notifyListeners();
+  }
+
+  /// Chamado só depois que a API devolveu um MP3 válido. Não consulta a API.
+  Future<void> markVoiceWorked(String voiceId) async {
+    final id = voiceId.trim();
+    if (id.isEmpty || workedVoiceIds.contains(id)) return;
+    if (workedVoiceIds.length >= _maxWorkedVoices) {
+      workedVoiceIds.remove(workedVoiceIds.first);
+    }
+    workedVoiceIds.add(id);
+    await _prefs?.setStringList('worked_voices', workedVoiceIds.toList());
     notifyListeners();
   }
 

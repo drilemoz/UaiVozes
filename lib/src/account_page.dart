@@ -140,8 +140,8 @@ Future<void> showUsageSheet(BuildContext context, AppModel model, {
             Text('Texto atual: ${_digits(upcomingCharacters)} caracteres',
               style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 5),
-            Text('Estimativa base: ${CreditEstimator.baseEstimate(upcomingCharacters)} créditos '
-              'para Eleven Multilingual v2. A geração ainda não foi cobrada. '
+            Text('Estimativa base: ${CreditEstimator.baseEstimate(upcomingCharacters, model: model.ttsModel)} créditos '
+              'para ${CreditEstimator.modelLabel(model.ttsModel)}. A geração ainda não foi cobrada. '
               'Multiplicadores de voz e condições da conta podem alterar o custo.',
               style: Theme.of(ctx).textTheme.bodySmall),
           ],

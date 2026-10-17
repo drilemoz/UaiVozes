@@ -28,6 +28,10 @@ String friendlyError(Object error) {
         error.reason == 'feature_not_available') {
       return 'a operação exige plano ou recurso não disponível na assinatura';
     }
+    if (error.reason == 'payment_required' ||
+        error.reason == 'paid_plan_required') {
+      return 'a ElevenLabs exige plano pago para esta operação (no plano Free, vozes da biblioteca pública não geram áudio pela API)';
+    }
     return switch (error.statusCode) {
       400 => 'formato ou parâmetros não aceitos pela ElevenLabs',
       401 => 'chave inválida ou sem permissão',
@@ -171,10 +175,15 @@ class ElevenApi {
           'insufficient_credits', 'subscription_required',
           'feature_not_available', 'voice_access_denied',
           'model_access_denied', 'insufficient_permissions',
+          'payment_required', 'paid_plan_required',
         };
         final code = detail['code'];
         final legacy = detail['status'];
-        final raw = code is String && code.isNotEmpty ? code : legacy;
+        final kind = detail['type'];
+        // Ordem: code atual, status legado, type. Só o primeiro valor não vazio
+        // é considerado, e apenas se estiver na lista permitida.
+        final raw = code is String && code.isNotEmpty ? code
+            : legacy is String && legacy.isNotEmpty ? legacy : kind;
         if (raw is String && permitted.contains(raw)) reason = raw;
       }
     } catch (_) {

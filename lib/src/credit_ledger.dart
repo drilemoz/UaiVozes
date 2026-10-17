@@ -2,8 +2,30 @@ import 'dart:convert';
 
 /// Crédito BASE estimado, não custo faturado. As vozes podem ter
 /// multiplicadores e a tarifa da API pode depender do plano.
+class TtsModelOption {
+  const TtsModelOption(this.id, this.label, this.hint);
+  final String id;
+  final String label;
+  final String hint;
+}
+
 class CreditEstimator {
   static const String defaultModel = 'eleven_multilingual_v2';
+  static const String flashModel = 'eleven_flash_v2_5';
+
+  /// Somente modelos com custo base documentado pela ElevenLabs. Nenhum outro
+  /// ID pode ser enviado: valores desconhecidos voltam ao padrão.
+  static const List<TtsModelOption> ttsModels = [
+    TtsModelOption(defaultModel, 'Multilingual v2',
+        'Mais expressivo · base de 1 crédito por caractere'),
+    TtsModelOption(flashModel, 'Flash v2.5',
+        'Mais econômico · base de 0,5 crédito por caractere'),
+  ];
+
+  static bool isKnownModel(String? id) => ttsModels.any((m) => m.id == id);
+
+  static String modelLabel(String id) => ttsModels
+      .firstWhere((m) => m.id == id, orElse: () => ttsModels.first).label;
 
   static int characterCount(String text) => text.trim().runes.length;
 
@@ -12,6 +34,9 @@ class CreditEstimator {
     // Tabela deliberadamente conservadora: nenhum preço inferido para
     // modelos cujo custo da API depende de plano/contrato.
     if (model == defaultModel) return characters;
+    // Flash v2.5: 0,5 crédito/caractere (arredondado para cima), antes de
+    // multiplicadores da voz e de eventuais condições do plano/API.
+    if (model == flashModel) return (characters + 1) ~/ 2;
     return null;
   }
 }

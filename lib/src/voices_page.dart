@@ -95,6 +95,7 @@ class _VoicesPageState extends State<VoicesPage> {
   bool loadingMore = false;
   bool rankingMode = false;
   bool favoritesOnly = false;
+  bool workedOnly = false;
   String? error;
   String? playingId;
   int requestVersion = 0;
@@ -104,6 +105,8 @@ class _VoicesPageState extends State<VoicesPage> {
   late String observedTier;
   late bool observedRefreshingUsage;
   String? observedUsageError;
+  late int observedDefaultRequest;
+  int observedWorkedCount = 0;
 
   @override
   void initState() {
@@ -113,6 +116,8 @@ class _VoicesPageState extends State<VoicesPage> {
     observedTier = widget.model.subscription?.tier ?? '';
     observedRefreshingUsage = widget.model.refreshingUsage;
     observedUsageError = widget.model.usageError;
+    observedDefaultRequest = widget.model.defaultVoicesRequest;
+    observedWorkedCount = widget.model.workedVoiceIds.length;
     widget.model.addListener(onModelUpdated);
     playerStateSubscription = previewPlayer.playerStateStream.listen((state) {
       if (mounted && state.processingState == ProcessingState.completed) {
@@ -124,6 +129,16 @@ class _VoicesPageState extends State<VoicesPage> {
   }
 
   void onModelUpdated() {
+    if (observedDefaultRequest != widget.model.defaultVoicesRequest) {
+      observedDefaultRequest = widget.model.defaultVoicesRequest;
+      if (mounted) showAccountCandidates(defaultOnly: true);
+      return;
+    }
+    if (observedWorkedCount != widget.model.workedVoiceIds.length) {
+      observedWorkedCount = widget.model.workedVoiceIds.length;
+      if (mounted) setState(() {});
+      return;
+    }
     final keyChanged = observedKey != widget.model.key;
     final languageChanged = observedLanguage != widget.model.language;
     final nextTier = widget.model.subscription?.tier ?? '';
@@ -218,6 +233,16 @@ class _VoicesPageState extends State<VoicesPage> {
     });
     if (activeKey.isEmpty) {
       if (mounted && request == requestVersion) setState(() => loading = false);
+      return;
+    }
+    if (rankingMode && activeLanguage == 'all') {
+      // Orientação ao usuário, não falha: sem erro no diagnóstico.
+      if (mounted && request == requestVersion) {
+        setState(() {
+          loading = false;
+          error = 'Escolha um idioma antes de abrir o Top 10.';
+        });
+      }
       return;
     }
     try {
@@ -541,6 +566,7 @@ class _VoicesPageState extends State<VoicesPage> {
 
   bool matches(Voice voice) {
     if (favoritesOnly && !widget.model.favoriteIds.contains(voice.id)) return false;
+    if (workedOnly && !widget.model.workedVoiceIds.contains(voice.id)) return false;
     if (!matchesVoiceAccessFilter(accessFilter, accessFor(voice),
         ownedCatalog: !rankingMode)) return false;
     if (rankingMode) {
@@ -585,6 +611,7 @@ class _VoicesPageState extends State<VoicesPage> {
       age = 'all'; accent = 'all'; sharedCategory = 'all';
       voiceType = defaultOnly ? 'default' : 'all';
       favoritesOnly = false;
+      workedOnly = false;
       verifiedVoices.clear();
       bulkCheckedVoices.clear();
     });
@@ -662,6 +689,12 @@ class _VoicesPageState extends State<VoicesPage> {
               color: favoritesOnly ? theme.colorScheme.primary : null),
             tooltip: favoritesOnly ? 'Mostrar todas as vozes' : 'Mostrar só favoritas',
             onPressed: () => setState(() => favoritesOnly = !favoritesOnly)),
+          IconButton(
+            icon: Icon(workedOnly ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+              color: workedOnly ? theme.colorScheme.primary : null),
+            tooltip: workedOnly ? 'Mostrar todas as vozes'
+                : 'Mostrar só as que já geraram áudio nesta conta',
+            onPressed: () => setState(() => workedOnly = !workedOnly)),
           IconButton(icon: const Icon(Icons.help_outline_rounded, size: 21),
             tooltip: rankingMode ? 'Entenda o Top 10' : 'Entenda Minhas vozes',
             onPressed: showVoiceHelp),
@@ -776,9 +809,14 @@ class _VoicesPageState extends State<VoicesPage> {
               child: const Text('Tentar novamente')))
         else if (visible.isEmpty && !loading)
           EmptyState(icon: Icons.mic_off_outlined,
-            title: accessFilter == VoiceAccessFilter.compatible
+            title: workedOnly ? 'Nenhuma voz validada ainda'
+              : accessFilter == VoiceAccessFilter.compatible
               ? 'Sem compatibilidade confirmada' : 'Nenhuma voz encontrada',
             description: loadingMore ? 'Buscando...' :
+                workedOnly
+                    ? 'Aparecem aqui as vozes que já devolveram áudio nesta conta. '
+                      'Gere um texto curto com uma voz padrão para começar.'
+                :
                 rankingMode && accessFilter == VoiceAccessFilter.compatible &&
                   (widget.model.subscription?.tier.toLowerCase() == 'free')
                     ? 'Seu plano Free não permite usar a biblioteca pública (Top 10) pela API. '
@@ -802,6 +840,7 @@ class _VoicesPageState extends State<VoicesPage> {
                   searchDebounce?.cancel(); searchController.clear();
                   setState(() {category = 'all'; voiceStyle = 'all'; gender = 'all';
                     age = 'all'; accent = 'all'; voiceType = 'all'; sharedCategory = 'all'; favoritesOnly = false;
+                    workedOnly = false;
                     accessFilter = VoiceAccessFilter.all;});
                   unawaited(refresh(force: true));
                 },
@@ -837,6 +876,10 @@ class _VoicesPageState extends State<VoicesPage> {
                 Builder(builder: (ctx) {
                   final info = accessFor(voice);
                   return Wrap(spacing: 7, runSpacing: 3, children: [
+                    if (widget.model.workedVoiceIds.contains(voice.id))
+                      Text('✓ Já gerou áudio nesta conta',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
                     Text(info.label, style: theme.textTheme.labelSmall?.copyWith(
                       color: info.isRestricted ? theme.colorScheme.error
                           : info.isCompatible ? theme.colorScheme.primary

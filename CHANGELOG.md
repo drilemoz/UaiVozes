@@ -1,5 +1,39 @@
 # Histórico de versões
 
+## 0.1.0-alpha.25+25 · 17/10/2026
+
+- Descoberta: a Biblioteca já tinha compartilhamento via `Share.shareXFiles`; faltava salvar o MP3 num local escolhido. Botão antigo renomeado para **Compartilhar**.
+- `lib/src/audio_export.dart` (`AudioExport.fileName` / `saveMp3`) e método `exportAudio` em `scripts/android/MainActivity.kt` (SAF `ACTION_CREATE_DOCUMENT`, `audio/mpeg`, cópia em streaming, `audioRequest = 19015`). Validação nativa: caminho canônico dentro de `applicationInfo.dataDir`, arquivo regular, até 50 MB, nome sanitizado, estado limpo em todos os desfechos.
+- `test/audio_export_test.dart` e `tools/test_audio_export_v025.py`; versão, workflow, notas e docs sincronizados. Flutter analyze/test, compilação Kotlin e APK pendentes do CI.
+
+## 0.1.0-alpha.24+24 · 17/10/2026
+
+- `CreditEstimator`: lista fechada `ttsModels` (Multilingual v2 e Flash v2.5), `isKnownModel`, `modelLabel` e estimativa do Flash (0,5/caractere, arredondado para cima). Modelos desconhecidos continuam sem estimativa.
+- `AppModel.ttsModel` + `setTtsModel()` (pref `tts_model`, validada no carregamento). Estúdio troca o card fixo por seletor; `synthesize(model:)`, confirmação, ledger local e tela de consumo usam o modelo escolhido.
+- `GenerationFailure.classify(model:)`: com modelo alternativo, 400/403/404/422 sugerem voltar ao Multilingual v2 e o diagnóstico inclui `modelo=`.
+- `test/model_selection_test.dart` e `tools/test_model_selection_v024.py`; versão, workflow, notas e docs sincronizados. Flutter analyze/test/APK pendentes do CI.
+
+## 0.1.0-alpha.23+23 · 17/10/2026
+
+- `AppModel.workedVoiceIds` + `markVoiceWorked()` (chamado após `audioReceived`, isto é, MP3 válido recebido), persistido em `worked_voices`, limite de 200, limpo em troca de chave e em `voiceRemovedFromAccount`.
+- `voices_page.dart`: selo "Já gerou áudio nesta conta" no cartão e filtro `workedOnly` (ícone de visto) combinável com favoritas/filtros; estado vazio próprio; limpo em "Limpar filtros" e ao trocar catálogo.
+- Sem TTS nem GET extra; o selo não altera a classificação de acesso por plano nem substitui "Verificar acesso".
+- `test/worked_voices_test.dart` e `tools/test_worked_voices_v023.py`; versão, workflow, notas e docs sincronizados. Flutter analyze/test/APK pendentes do CI.
+
+## 0.1.0-alpha.22+22 · 16/10/2026
+
+- Estúdio: o aviso de falha HTTP 402 tem o botão **Ver vozes padrão da minha conta**; fecha o aviso, abre a aba Vozes e aplica `showAccountCandidates(defaultOnly: true)` (GET `voice_type=default`), sem TTS.
+- `AppModel.defaultVoicesRequest` / `requestDefaultVoices()` notifica a aba Vozes (mantida viva pelo `IndexedStack`); `VoicesPage` compara o contador em `onModelUpdated`.
+- Teste Dart `test/default_voices_request_test.dart` e regressão Python `tools/test_default_voices_button_v022.py`; versão, workflow, notas e docs sincronizados. Flutter analyze/test/APK pendentes do CI.
+
+## 0.1.0-alpha.21+21 · 16/10/2026
+
+- Diagnóstico real (plano `free`, 38 eventos): HTTP 402 em todas as gerações, sem código de motivo reconhecido, e 5 `FormatException` em `voices_page.dart:179` (Top 10 aberto com idioma "all").
+- `eleven_api.dart`: `payment_required` e `paid_plan_required` adicionados à lista permitida; ordem de leitura `detail.code` → `detail.status` → `detail.type`, só o primeiro valor não vazio e permitido.
+- `generation_failure.dart` e `studio_page.dart`: o plano atual é passado ao classificador. No Free, o 402 cita vozes da biblioteca pública (hipótese, motivo exato não confirmado) e sugere voz padrão/própria; sem alterar o comportamento para planos pagos.
+- `voices_page.dart`: Top 10 sem idioma mostra a orientação antes de qualquer requisição e não registra erro.
+- Testes `test/payment_required_test.dart` e `tools/test_payment_and_top10_v021.py`; versão, workflow, notas e docs sincronizados. Flutter analyze/test/APK pendentes do CI.
+
 ## 0.1.0-alpha.20+20 · 16/10/2026
 
 - Workflow v0.19: 22 testes Python e validação estrutural passaram, mas `flutter analyze` falhou com 3 erros Dart em `lib/src/voices_page.dart:810,816` (vírgula/encadeamento de `if/else` em coleção de Widgets).

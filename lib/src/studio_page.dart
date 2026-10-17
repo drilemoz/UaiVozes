@@ -219,12 +219,12 @@ class _StudioPageState extends State<StudioPage> {
       }
       if (widget.model.confirmCreditsBeforeGenerate) {
         final estimate = CreditEstimator.baseEstimate(
-          CreditEstimator.characterCount(content))!;
+          CreditEstimator.characterCount(content), model: widget.model.ttsModel)!;
         final remaining = widget.model.subscription?.remaining;
         final charCount = CreditEstimator.characterCount(content);
         final approved = await confirmSheet(context,
           title: 'Confirmar geração de áudio',
-          message: 'Este texto tem $charCount caracteres. Para Eleven Multilingual v2, a referência base é de aproximadamente $estimate créditos, antes de eventuais multiplicadores e condições da conta. '
+          message: 'Este texto tem $charCount caracteres. Para ${CreditEstimator.modelLabel(widget.model.ttsModel)}, a referência base é de aproximadamente $estimate créditos, antes de eventuais multiplicadores e condições da conta. '
             'A cobrança efetiva depende das condições da ElevenLabs. '
             '${remaining == null ? 'Saldo não disponível na consulta atual.' : 'Saldo informado pela API: $remaining.'} '
             '${voice.hasCustomRate ? 'A voz informa tarifa específica: o valor real pode ser superior à base. ' : ''}'
@@ -241,8 +241,10 @@ class _StudioPageState extends State<StudioPage> {
       var audioSaved = false;
       try {
         final Uint8List bytes = await widget.model.api.synthesize(
-          voiceId: voice.id, text: content);
+          voiceId: voice.id, text: content, model: widget.model.ttsModel);
         audioReceived = true;
+        // Voz validada por geração real nesta conta (usada no filtro e no selo).
+        unawaited(widget.model.markVoiceWorked(voice.id));
         // Primeiro preservar os bytes recebidos. Um erro de preferências ou
         // histórico não pode impedir o MP3 de chegar à Biblioteca.
         final audio = await widget.model.saveAudio(bytes, content, voice);
@@ -250,7 +252,7 @@ class _StudioPageState extends State<StudioPage> {
         if (mounted) setState(() => lastAudio = audio);
         try {
           await widget.model.recordGeneratedCharacters(content,
-            modelId: CreditEstimator.defaultModel);
+            modelId: widget.model.ttsModel);
         } catch (ledgerError, ledgerStack) {
           AppDiagnostics.instance.capture('ESTUDIO_CONSUMO_LOCAL', ledgerError, ledgerStack);
           // A geração já foi salva: não informar falha de geração.
@@ -272,7 +274,8 @@ class _StudioPageState extends State<StudioPage> {
             error, publicLibrary: false, stage: VoiceCheckStage.studio);
         }
         final failure = GenerationFailure.classify(error,
-          audioReceived: audioReceived, audioSaved: audioSaved);
+          audioReceived: audioReceived, audioSaved: audioSaved,
+          plan: widget.model.subscription?.tier, model: widget.model.ttsModel);
         AppDiagnostics.instance.capture('ESTUDIO_GERAR', error, stack);
         AppDiagnostics.instance.failure('ESTUDIO_ETAPA', failure.diagnostic);
         if (mounted) {
@@ -312,6 +315,18 @@ class _StudioPageState extends State<StudioPage> {
           Text(failure.nextAction),
           if (failure.httpStatus == 402) ...[
             const SizedBox(height: 12),
+            SizedBox(width: double.infinity, child: FilledButton.tonalIcon(
+              icon: const Icon(Icons.record_voice_over_outlined),
+              label: const Text('Ver vozes padrão da minha conta'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                if (!mounted) return;
+                // Somente lista vozes (GET); nenhuma geração é disparada.
+                widget.openVoices();
+                widget.model.requestDefaultVoices();
+              },
+            )),
+            const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: OutlinedButton.icon(
               icon: const Icon(Icons.account_balance_wallet_outlined),
               label: const Text('Consultar créditos e consumo'),
@@ -450,14 +465,31 @@ class _StudioPageState extends State<StudioPage> {
             ),
           ),
           const SizedBox(height: 16),
-          UaiVozesCard(child: Row(children: [
-            const Icon(Icons.language_rounded),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Modelo multilíngue', style: TextStyle(fontWeight: FontWeight.w700)),
-              Text(languages[widget.model.language] ?? 'Multilíngue', style: theme.textTheme.bodySmall),
-            ])),
-            const Icon(Icons.check_circle_outline_rounded),
+          UaiVozesCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Icon(Icons.language_rounded),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Modelo de voz', style: TextStyle(fontWeight: FontWeight.w700)),
+                Text(languages[widget.model.language] ?? 'Multilíngue', style: theme.textTheme.bodySmall),
+              ])),
+            ]),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              for (final option in CreditEstimator.ttsModels)
+                ChoiceChip(
+                  label: Text(option.label),
+                  selected: widget.model.ttsModel == option.id,
+                  onSelected: generating || widget.model.generationInProgress ? null
+                      : (_) => unawaited(widget.model.setTtsModel(option.id)),
+                ),
+            ]),
+            const SizedBox(height: 6),
+            Text(CreditEstimator.ttsModels
+                .firstWhere((m) => m.id == widget.model.ttsModel).hint,
+              style: theme.textTheme.bodySmall),
+            const Text('Valores de referência da ElevenLabs, antes de multiplicadores da voz e condições do plano.',
+              style: TextStyle(fontSize: 11)),
           ])),
           const SizedBox(height: 24),
           FilledButton.icon(

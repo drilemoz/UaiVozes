@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'app_model.dart';
+import 'audio_export.dart';
 import 'diagnostics.dart';
 import 'models.dart';
 import 'ui.dart';
@@ -142,6 +143,20 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
+  Future<void> saveToDevice(AudioRecord item) async {
+    if (!await File(item.path).exists()) {
+      if (mounted) notice(context, 'Arquivo não encontrado.');
+      return;
+    }
+    try {
+      final saved = await AudioExport.saveMp3(item.path, item.name);
+      if (saved && mounted) notice(context, 'MP3 salvo no local escolhido.');
+    } catch (e, stack) {
+      AppDiagnostics.instance.capture('BIBLIOTECA_SALVAR', e, stack);
+      if (mounted) notice(context, 'Não foi possível salvar o MP3 no aparelho.');
+    }
+  }
+
   String dateLabel(DateTime date) {
     String p(int n) => n.toString().padLeft(2, '0');
     return '${p(date.day)}/${p(date.month)}/${date.year} • ${p(date.hour)}:${p(date.minute)}';
@@ -188,9 +203,12 @@ class _LibraryPageState extends State<LibraryPage> {
             ]),
             const SizedBox(height: 12),
             Row(children: [
-              TextButton.icon(onPressed: () => share(item), icon: const Icon(Icons.ios_share_rounded, size: 18),
-                  label: const Text('Exportar')),
-              const Spacer(),
+              Expanded(child: Wrap(children: [
+                TextButton.icon(onPressed: () => share(item), icon: const Icon(Icons.ios_share_rounded, size: 18),
+                    label: const Text('Compartilhar')),
+                TextButton.icon(onPressed: () => saveToDevice(item), icon: const Icon(Icons.download_rounded, size: 18),
+                    label: const Text('Salvar MP3')),
+              ])),
               IconButton(onPressed: () => rename(item), tooltip: 'Renomear',
                   icon: const Icon(Icons.edit_outlined, size: 21)),
               IconButton(onPressed: () => remove(item), tooltip: 'Excluir',

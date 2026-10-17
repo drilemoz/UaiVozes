@@ -1,3 +1,25 @@
+# Validação da versão 0.1.0-alpha.25+25
+
+- Alteração em `MainActivity.kt` (novo `exportAudio`) revisada só por leitura e testes Python de código-fonte; Kotlin e Flutter não foram compilados aqui. Conferir no CI e no celular: Salvar MP3 abre o seletor, grava um MP3 que toca, cancelar não mostra erro, e Compartilhar continua funcionando.
+
+# Validação da versão 0.1.0-alpha.24+24
+
+- Custos base conferidos na central de ajuda da ElevenLabs em 17/10/2026: Multilingual v2 = 1 crédito/caractere; Flash v2.5 = 0,5 crédito/caractere, excluídos multiplicadores. A cobrança pela API pode ter condições próprias; conferir o consumo real em Conta.
+- Testes Python de código-fonte e teste Dart escrito (não executado: Flutter SDK ausente). Conferir no CI e no celular: troca de modelo, confirmação de custo e geração com Flash v2.5 em voz padrão.
+
+# Validação da versão 0.1.0-alpha.23+23
+
+- Voz validada por geração real: persistência e limpeza em `AppModel`, selo e filtro em `voices_page.dart`. Testado só por Python de código-fonte e teste Dart escrito (não executado: Flutter SDK ausente). Conferir no CI e no celular: selo aparece após gerar, filtro funciona e some ao trocar a chave.
+
+# Validação da versão 0.1.0-alpha.22+22
+
+- Botão do aviso 402 → aba Vozes com filtro de vozes padrão. Verificado só por testes Python de código-fonte; Flutter SDK ausente, então `flutter analyze`, `flutter test` e a navegação em dispositivo dependem do CI e de teste manual.
+
+# Validação da versão 0.1.0-alpha.21+21
+
+- Origem: relatório de diagnóstico da alpha.20 (plano `free`, 38 eventos, 16/10/2026): 402 recorrentes na geração (`codigo=nao_informado`) e 5 `FormatException` em `voices_page.dart:179`.
+- Verificado localmente apenas por testes Python de código-fonte; Flutter SDK ausente. `flutter analyze`, `flutter test` e APK pendentes do CI. A causa do 402 (voz da biblioteca no Free vs. créditos) permanece hipótese até testar com voz padrão.
+
 # Validação da versão 0.1.0-alpha.20+20
 
 - Caso reproduzido conceitualmente com o diagnóstico do usuário: `plano=free`, Top 10 público sem vozes com permissão Free; vozes da conta com `available_for_tiers` ausente não podem ser classificadas como compatíveis, porém podem ser exibidas como candidatas sem restrição explícita.
